@@ -2,35 +2,26 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Phúc Lợi - Hệ Thống Điều Hành Dự Án</title>
+    <title>Panasonic Phúc Lợi - Dashboard Quy Mô Dự Án</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --pana-blue: #005696; --pana-red: #e60012; }
-        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; }
         
-        /* Sidebar bên trái */
         #sidebar { flex: 3; background: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
-        .header { background: var(--pana-blue); color: white; padding: 20px; text-align: center; }
-        .filter-group { padding: 15px; border-bottom: 1px solid #eee; background: #f9f9f9; }
-        select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+        .header { background: var(--pana-blue); color: white; padding: 15px; text-align: center; }
+        .filter-group { padding: 10px; background: #f9f9f9; border-bottom: 1px solid #eee; }
+        select { width: 100%; padding: 8px; border-radius: 4px; }
         
         #project-list { overflow-y: auto; flex-grow: 1; }
-        .item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
         .item:hover { background: #f0f7ff; }
-        .item.active { border-left-color: var(--pana-red); background: #f0f7ff; }
+        .item.active { border-left: 5px solid var(--pana-red); background: #f0f7ff; }
         
-        /* Bản đồ bên phải */
         #map { flex: 7; height: 100%; }
-
-        /* Badge trạng thái */
-        .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: bold; }
-        .bg-red { background: #e74c3c; } /* Đang xây dựng/Hoàn thiện */
-        .bg-green { background: #27ae60; } /* Đã hoàn thiện */
-        .bg-purple { background: #8e44ad; } /* Mới cấp phép */
-        
-        .distance-tag { color: var(--pana-red); font-weight: bold; font-size: 12px; }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; color: white; }
     </style>
 </head>
 <body>
@@ -40,18 +31,14 @@
         <h2 style="margin:0">PANASONIC PHÚC LỢI</h2>
         <small>Showroom & Tổng kho 5500m²</small>
     </div>
-    
     <div class="filter-group">
-        <label><strong>Lọc theo tình trạng:</strong></label>
         <select id="statusFilter" onchange="filterData()">
-            <option value="all">-- Tất cả dự án --</option>
+            <option value="all">-- Tất cả trạng thái --</option>
             <option value="Đang xây dựng">Đang xây dựng / Hoàn thiện</option>
             <option value="Đã hoàn thiện">Đã hoàn thiện / Đang ở</option>
-            <option value="Mới cấp phép">Mới cấp phép / Đang móng</option>
         </select>
     </div>
-
-    <div id="project-list">Đang tải dữ liệu từ Google Sheets...</div>
+    <div id="project-list">Đang tải dữ liệu...</div>
 </div>
 
 <div id="map"></div>
@@ -60,17 +47,10 @@
     const showroomPos = [21.048766, 105.922618];
     const map = L.map('map').setView(showroomPos, 13);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Marker đặc biệt cho Tổng kho
-    const houseIcon = L.divIcon({
-        html: '<div style="background:var(--pana-red); color:white; padding:5px; border:2px solid white; border-radius:5px; width:80px; text-align:center; font-weight:bold; font-size:10px;">TỔNG KHO PANA</div>',
-        className: 'custom-div-icon', iconSize: [80, 20]
-    });
-    L.marker(showroomPos, {icon: houseIcon}).addTo(map);
-    L.circle(showroomPos, { radius: 5000, color: 'blue', fillOpacity: 0.03, weight: 1 }).addTo(map); // Vòng tròn 5km
+    // Marker Tổng kho
+    L.marker(showroomPos).addTo(map).bindPopup("<b>TỔNG KHO PANASONIC PHÚC LỢI</b>").openPopup();
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
@@ -79,15 +59,16 @@
 
     function getColor(status) {
         if (status.includes("Đang xây") || status.includes("Đang hoàn thiện")) return "#e74c3c"; // Đỏ
-        if (status.includes("Đã hoàn thiện") || status.includes("Đã xong")) return "#27ae60"; // Xanh
-        return "#8e44ad"; // Tím
+        return "#27ae60"; // Xanh
     }
 
-    function getRadius(qty) {
-        const count = parseInt(qty) || 500;
-        if (count > 5000) return 15;
-        if (count > 1000) return 10;
-        return 6;
+    // Hàm tính bán kính vòng tròn dựa trên số căn (quy mô diện tích tương đối)
+    function getProjectRadius(qty) {
+        const count = parseInt(qty.replace(/,/g, '')) || 500;
+        if (count > 10000) return 1500; // Siêu dự án (Vinhomes) -> vòng tròn 1.5km
+        if (count > 5000) return 800;  
+        if (count > 1000) return 400;  
+        return 200; // Dự án nhỏ -> vòng tròn 200m
     }
 
     function init() {
@@ -105,45 +86,37 @@
         const list = document.getElementById('project-list');
         list.innerHTML = "";
 
-        data.forEach((p, index) => {
+        data.forEach((p) => {
             const latLng = [parseFloat(p.vĩ_độ), parseFloat(p.kinh_độ)];
             const color = getColor(p.tinh_trang);
-            const radius = getRadius(p.quy_mo_can);
+            const radiusInMeters = getProjectRadius(p.quy_mo_can);
 
-            // 1. Thêm Circle Marker lên bản đồ
-            const marker = L.circleMarker(latLng, {
-                radius: radius, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.8
+            // 1. Vẽ Vòng tròn diện tích dự án
+            L.circle(latLng, {
+                radius: radiusInMeters,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.2,
+                weight: 1
             }).addTo(markersLayer);
 
-            marker.bindPopup(`
-                <strong style="color:var(--pana-blue)">${p.tên_du_an}</strong><br>
-                <b>CĐT:</b> ${p.chu_dau_tu}<br>
-                <b>Quy mô:</b> ${p.quy_mo_can} căn<br>
-                <b>Tình trạng:</b> ${p.tinh_trang}
-            `);
+            // 2. Chấm định vị tâm dự án
+            const marker = L.circleMarker(latLng, {
+                radius: 6, fillColor: "white", color: color, weight: 3, opacity: 1, fillOpacity: 1
+            }).addTo(markersLayer);
 
-            // 2. Thêm Card vào Sidebar
+            marker.bindPopup(`<strong>${p.tên_du_an}</strong><br>Quy mô: ${p.quy_mo_can} căn`);
+
+            // 3. Hiển thị Card bên Sidebar
             const card = document.createElement('div');
             card.className = 'item';
-            const badgeClass = color === "#e74c3c" ? "bg-red" : (color === "#27ae60" ? "bg-green" : "bg-purple");
-            
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <strong style="font-size:14px;">${p.tên_du_an}</strong>
-                    <span class="distance-tag">${p.khoang_cach}</span>
-                </div>
-                <div style="margin-top:5px;">
-                    <span class="badge ${badgeClass}">${p.tinh_trang}</span>
-                    <small style="margin-left:5px; color:#666;">| ${p.quy_mo_can} căn</small>
-                </div>
-                <div style="font-size:12px; color:#888; margin-top:5px;">${p.ghi_chu_kinh_doanh}</div>
+                <strong>${p.tên_du_an}</strong> <br>
+                <small>${p.tinh_trang} | ${p.quy_mo_can} căn</small>
             `;
-
             card.onclick = () => {
                 map.flyTo(latLng, 15);
                 marker.openPopup();
-                document.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
-                card.classList.add('active');
             };
             list.appendChild(card);
         });
