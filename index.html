@@ -2,130 +2,188 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Phúc Lợi - Dashboard Quy Mô Dự Án</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Điều Hành Dự Án Panasonic Phúc Lợi</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
     <style>
-        :root { --pana-blue: #005696; --pana-red: #e60012; }
-        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; }
+        :root { --pana-blue: #005696; --pana-red: #e60012; --bg-light: #f4f7f6; }
+        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-light); overflow: hidden; }
+
+        /* Sidebar */
+        #sidebar { flex: 0 0 380px; background: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
+        .header { background: var(--pana-blue); color: white; padding: 20px; text-align: center; }
+        .stats { display: flex; justify-content: space-around; background: #004578; padding: 10px; font-size: 12px; }
         
-        #sidebar { flex: 3; background: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
-        .header { background: var(--pana-blue); color: white; padding: 15px; text-align: center; }
-        .filter-group { padding: 10px; background: #f9f9f9; border-bottom: 1px solid #eee; }
-        select { width: 100%; padding: 8px; border-radius: 4px; }
+        .control-panel { padding: 15px; border-bottom: 1px solid #eee; background: #fff; }
+        .search-box { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px; }
         
         #project-list { overflow-y: auto; flex-grow: 1; }
-        .item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
-        .item:hover { background: #f0f7ff; }
-        .item.active { border-left: 5px solid var(--pana-red); background: #f0f7ff; }
+        .project-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.3s; border-left: 5px solid transparent; }
+        .project-item:hover { background: #f0f7ff; }
+        .project-item.active { border-left-color: var(--pana-red); background: #f0f7ff; }
         
-        #map { flex: 7; height: 100%; }
-        .badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; color: white; }
+        /* Map */
+        #map { flex: 1; position: relative; }
+
+        /* Badge & UI */
+        .badge { font-size: 11px; padding: 3px 8px; border-radius: 12px; color: white; font-weight: bold; }
+        .status-red { background: #e74c3c; } /* Đang xây */
+        .status-green { background: #27ae60; } /* Đã xong */
+        .ward-tag { display: block; color: var(--pana-blue); font-size: 13px; font-weight: 600; margin: 4px 0; }
+        .btn-export { width: 100%; background: #27ae60; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <div class="header">
-        <h2 style="margin:0">PANASONIC PHÚC LỢI</h2>
-        <small>Showroom & Tổng kho 5500m²</small>
+        <h2 style="margin:0; letter-spacing: 1px;">PANASONIC PHÚC LỢI</h2>
+        <small>Showroom & Tổng kho 5.500m²</small>
     </div>
-    <div class="filter-group">
-        <select id="statusFilter" onchange="filterData()">
-            <option value="all">-- Tất cả trạng thái --</option>
+    <div class="stats" id="stats-panel">
+        <div>Dự án: <span id="total-proj">0</span></div>
+        <div>Tổng căn: <span id="total-units">0</span></div>
+    </div>
+    
+    <div class="control-panel">
+        <input type="text" id="searchInput" class="search-box" placeholder="Tìm tên dự án hoặc phường..." onkeyup="searchProject()">
+        <select id="filterStatus" class="search-box" style="margin-bottom:0" onchange="searchProject()">
+            <option value="">Tất cả trạng thái</option>
             <option value="Đang xây dựng">Đang xây dựng / Hoàn thiện</option>
-            <option value="Đã hoàn thiện">Đã hoàn thiện / Đang ở</option>
+            <option value="Đã hoàn thiện">Đã hoàn thiện</option>
         </select>
+        <button class="btn-export" onclick="exportData()"><i class="fas fa-file-export"></i> Xuất dữ liệu Phường/Xã</button>
     </div>
-    <div id="project-list">Đang tải dữ liệu...</div>
+
+    <div id="project-list">
+        <div style="padding: 20px; text-align: center;">Đang khởi tạo dữ liệu...</div>
+    </div>
 </div>
 
 <div id="map"></div>
 
 <script>
     const showroomPos = [21.048766, 105.922618];
-    const map = L.map('map').setView(showroomPos, 13);
-    
+    const map = L.map('map').setView(showroomPos, 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Marker Tổng kho
-    L.marker(showroomPos).addTo(map).bindPopup("<b>TỔNG KHO PANASONIC PHÚC LỢI</b>").openPopup();
+    const panaIcon = L.divIcon({
+        html: '<div style="background:red;color:white;padding:5px;border-radius:5px;font-size:10px;font-weight:bold;width:70px;text-align:center;">TỔNG KHO</div>',
+        className: 'pana-marker', iconSize: [70, 20]
+    });
+    L.marker(showroomPos, {icon: panaIcon}).addTo(map).bindPopup("<b>Tổng kho Panasonic Phúc Lợi</b>");
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
-    let allData = [];
+    let fullData = [];
     let markersLayer = L.layerGroup().addTo(map);
 
-    function getColor(status) {
-        if (status.includes("Đang xây") || status.includes("Đang hoàn thiện")) return "#e74c3c"; // Đỏ
-        return "#27ae60"; // Xanh
+    // Hàm lấy Phường/Xã từ tọa độ
+    async function fetchWard(lat, lon) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`);
+            const json = await res.json();
+            return json.address.suburb || json.address.quarter || json.address.village || json.address.town || "Đang cập nhật";
+        } catch { return "Chưa xác định"; }
     }
 
-    // Hàm tính bán kính vòng tròn dựa trên số căn (quy mô diện tích tương đối)
-    function getProjectRadius(qty) {
-        const count = parseInt(qty.replace(/,/g, '')) || 500;
-        if (count > 10000) return 1500; // Siêu dự án (Vinhomes) -> vòng tròn 1.5km
-        if (count > 5000) return 800;  
-        if (count > 1000) return 400;  
-        return 200; // Dự án nhỏ -> vòng tròn 200m
+    function getCircleRadius(qty) {
+        let n = parseInt(qty.toString().replace(/,/g, '')) || 0;
+        return n > 5000 ? 1000 : (n > 1000 ? 500 : 250);
     }
 
-    function init() {
+    async function init() {
         Papa.parse(csvUrl, {
             download: true, header: true,
-            complete: function(results) {
-                allData = results.data.filter(p => p.vĩ_độ && p.kinh_độ);
-                renderDashboard(allData);
+            complete: async function(results) {
+                const raw = results.data.filter(p => p.vĩ_độ && p.kinh_độ);
+                // Cập nhật thống kê
+                document.getElementById('total-proj').innerText = raw.length;
+                let totalCăn = raw.reduce((sum, p) => sum + (parseInt(p.quy_mo_can.replace(/,/g,'')) || 0), 0);
+                document.getElementById('total-units').innerText = totalCăn.toLocaleString();
+
+                // Quét địa chỉ cho từng dự án (có thể tốn thời gian, chạy bất đồng bộ)
+                for (let p of raw) {
+                    p.detectedWard = await fetchWard(p.vĩ_độ, p.kinh_độ);
+                    fullData.push(p);
+                    updateSingleUI(p); // Hiện dự án nào xong dự án đó
+                }
+                renderList(fullData);
             }
         });
     }
 
-    function renderDashboard(data) {
-        markersLayer.clearLayers();
+    function updateSingleUI(p) {
+        const color = p.tinh_trang.includes("Đang xây") ? "#e74c3c" : "#27ae60";
+        
+        // Vẽ vòng diện tích
+        L.circle([p.vĩ_độ, p.kinh_độ], {
+            radius: getCircleRadius(p.quy_mo_can),
+            color: color, fillOpacity: 0.15, weight: 1
+        }).addTo(markersLayer);
+
+        // Chấm marker
+        const m = L.circleMarker([p.vĩ_độ, p.kinh_độ], {
+            radius: 6, fillColor: "white", color: color, weight: 3, fillOpacity: 1
+        }).addTo(markersLayer);
+
+        m.bindPopup(`<b>${p.tên_du_an}</b><br>Phường: ${p.detectedWard}<br>Quy mô: ${p.quy_mo_can} căn`);
+    }
+
+    function renderList(data) {
         const list = document.getElementById('project-list');
         list.innerHTML = "";
-
-        data.forEach((p) => {
-            const latLng = [parseFloat(p.vĩ_độ), parseFloat(p.kinh_độ)];
-            const color = getColor(p.tinh_trang);
-            const radiusInMeters = getProjectRadius(p.quy_mo_can);
-
-            // 1. Vẽ Vòng tròn diện tích dự án
-            L.circle(latLng, {
-                radius: radiusInMeters,
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.2,
-                weight: 1
-            }).addTo(markersLayer);
-
-            // 2. Chấm định vị tâm dự án
-            const marker = L.circleMarker(latLng, {
-                radius: 6, fillColor: "white", color: color, weight: 3, opacity: 1, fillOpacity: 1
-            }).addTo(markersLayer);
-
-            marker.bindPopup(`<strong>${p.tên_du_an}</strong><br>Quy mô: ${p.quy_mo_can} căn`);
-
-            // 3. Hiển thị Card bên Sidebar
+        data.forEach(p => {
             const card = document.createElement('div');
-            card.className = 'item';
+            card.className = 'project-item';
+            const statusClass = p.tinh_trang.includes("Đang xây") ? "status-red" : "status-green";
+            
             card.innerHTML = `
-                <strong>${p.tên_du_an}</strong> <br>
-                <small>${p.tinh_trang} | ${p.quy_mo_can} căn</small>
+                <div style="display:flex; justify-content:space-between">
+                    <strong>${p.tên_du_an}</strong>
+                    <span style="color:red; font-weight:bold; font-size:12px">${p.khoang_cach}</span>
+                </div>
+                <span class="ward-tag"><i class="fas fa-map-marker-alt"></i> ${p.detectedWard}</span>
+                <span class="badge ${statusClass}">${p.tinh_trang}</span>
+                <span style="font-size:12px; color:#666; margin-left:10px">${p.quy_mo_can} căn</span>
             `;
             card.onclick = () => {
-                map.flyTo(latLng, 15);
-                marker.openPopup();
+                map.flyTo([p.vĩ_độ, p.kinh_độ], 15);
+                document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
+                card.classList.add('active');
             };
             list.appendChild(card);
         });
     }
 
-    function filterData() {
-        const val = document.getElementById('statusFilter').value;
-        const filtered = val === "all" ? allData : allData.filter(p => p.tinh_trang.includes(val));
-        renderDashboard(filtered);
+    function searchProject() {
+        const key = document.getElementById('searchInput').value.toLowerCase();
+        const stat = document.getElementById('filterStatus').value;
+        const filtered = fullData.filter(p => {
+            const matchKey = p.tên_du_an.toLowerCase().includes(key) || p.detectedWard.toLowerCase().includes(key);
+            const matchStat = stat === "" || p.tinh_trang.includes(stat);
+            return matchKey && matchStat;
+        });
+        renderList(filtered);
+    }
+
+    function exportData() {
+        let csvContent = "data:text/csv;charset=utf-8,Ten Du An,Vi Do,Kinh Do,Phuong Xa Toa Do\n";
+        fullData.forEach(p => {
+            csvContent += `${p.tên_du_an},${p.vĩ_độ},${p.kinh_độ},${p.detectedWard}\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "du_an_panasonic_kem_phuong.csv");
+        document.body.appendChild(link);
+        link.click();
     }
 
     window.onload = init;
