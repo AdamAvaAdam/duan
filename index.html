@@ -2,39 +2,33 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Phúc Lợi - Command Center V2</title>
+    <title>Panasonic Phúc Lợi - Command Center (Fixed ~)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --pana-blue: #005696; --pana-red: #e60012; }
         body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; background: #f4f4f4; }
-        
         #sidebar-left { flex: 0 0 320px; background: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
         #sidebar-right { flex: 0 0 320px; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; padding: 15px; z-index: 1000; overflow-y: auto; }
         #map { flex: 1; height: 100%; }
-
         .header { background: var(--pana-blue); color: white; padding: 15px; text-align: center; }
         .stat-box { background: var(--pana-blue); color: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; text-align: center; }
-        .report-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 10px; background: #f9f9f9; border-radius: 5px; overflow: hidden; }
+        .report-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 10px; background: #f9f9f9; border-radius: 5px; }
         .report-table td { padding: 8px; border-bottom: 1px solid #eee; }
-        .report-table tr:last-child td { border: none; }
         .count-val { font-weight: bold; color: var(--pana-red); float: right; }
-
         .filter-group { margin-bottom: 15px; }
         .filter-label { font-weight: bold; font-size: 13px; color: #555; display: block; margin-bottom: 5px; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-
-        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
         .project-card:hover { background: #f0f7ff; }
-        .project-card.active { border-left: 5px solid var(--pana-red); background: #f0f7ff; }
         .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="sidebar-left">
-    <div class="header"><h3 style="margin:0">DỰ ÁN CHI TIẾT</h3></div>
+    <div class="header"><h3 style="margin:0">CHI TIẾT DỰ ÁN</h3></div>
     <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm tên dự án..." onkeyup="applyFilters()"></div>
     <div id="project-list" style="overflow-y:auto"></div>
 </div>
@@ -44,46 +38,43 @@
 <div id="sidebar-right">
     <div class="stat-box">
         <div style="font-size:24px; font-weight:bold;" id="total-match">0</div>
-        <small>DỰ ÁN PHÙ HỢP</small>
+        <small>DỰ ÁN KHẢ THI</small>
     </div>
 
     <div style="background: #fff; padding: 10px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 15px;">
-        <strong style="font-size:13px; color:var(--pana-blue)">THỐNG KÊ BỘ LỌC</strong>
-        <table class="report-table" id="report-summary">
-            </table>
+        <strong style="font-size:13px; color:var(--pana-blue)">PHÂN TÍCH NHÓM LỌC</strong>
+        <table class="report-table" id="report-summary"></table>
     </div>
 
     <div class="filter-group">
-        <label class="filter-label">QUY MÔ CĂN</label>
+        <label class="filter-label">QUY MÔ CĂN (XỬ LÝ CẢ DẤU ~)</label>
         <select id="f-size" onchange="applyFilters()">
             <option value="all">Tất cả quy mô</option>
-            <option value="lon">Lớn (> 2,000 căn)</option>
-            <option value="vua">Vừa (500 - 2,000 căn)</option>
+            <option value="lon">Lớn (> 2.000 căn)</option>
+            <option value="vua">Vừa (500 - 2.000 căn)</option>
             <option value="nho">Nhỏ (< 500 căn)</option>
         </select>
     </div>
 
     <div class="filter-group">
-        <label class="filter-label">PHÂN CẤP HÀNG</label>
+        <label class="filter-label">PHÂN CẤP DỰ ÁN</label>
         <select id="f-class" onchange="applyFilters()">
-            <option value="all">Tất cả phân khúc</option>
+            <option value="all">Tất cả phân cấp</option>
             <option value="cao">Cao cấp (Vinhomes, Ecopark...)</option>
-            <option value="trung">Trung cấp</option>
-            <option value="thuong">Thường / NOXH</option>
+            <option value="thuong">Bình dân / NOXH</option>
         </select>
     </div>
 
     <div class="filter-group">
-        <label class="filter-label">TÌNH TRẠNG</label>
+        <label class="filter-label">TIẾN ĐỘ THI CÔNG</label>
         <select id="f-status" onchange="applyFilters()">
-            <option value="all">Tất cả tình trạng</option>
+            <option value="all">Tất cả tiến độ</option>
             <option value="Hoàn thiện">Đã hoàn thiện</option>
-            <option value="xây dựng">Đang xây dựng</option>
-            <option value="hồ sơ">Mới duyệt hồ sơ</option>
+            <option value="xây dựng">Đang thi công</option>
+            <option value="duyệt">Mới duyệt / Đang móng</option>
         </select>
     </div>
-
-    <button onclick="resetFilters()" style="padding:10px; cursor:pointer; background:#f0f0f0; border:1px solid #ccc; border-radius:4px; width:100%">Xóa bộ lọc</button>
+    <button onclick="resetFilters()" style="padding:10px; cursor:pointer; width:100%; border:none; background:#ddd; border-radius:4px;">Làm mới bộ lọc</button>
 </div>
 
 <script>
@@ -98,6 +89,14 @@
     
     let allData = [];
     let markersLayer = L.layerGroup().addTo(map);
+
+    // HÀM QUAN TRỌNG NHẤT: Bóc tách số từ chuỗi "~1.500 căn"
+    function parseRealNumber(val) {
+        if (!val) return 0;
+        // Loại bỏ mọi ký tự không phải số (kể cả dấu ~, dấu chấm, dấu phẩy, chữ)
+        let cleaned = val.toString().replace(/[^0-9]/g, '');
+        return parseInt(cleaned) || 0;
+    }
 
     function init() {
         Papa.parse(csvUrl, {
@@ -116,25 +115,20 @@
         const searchF = document.getElementById('searchInp').value.toLowerCase();
 
         const filtered = allData.filter(p => {
-            // Xử lý loại bỏ dấu phẩy trong số căn để so sánh đúng
-            const num = parseInt(p.quy_mo_can.toString().replace(/,/g, '')) || 0;
+            const num = parseRealNumber(p.quy_mo_can); // Ép kiểu về số thuần túy
             const name = p.tên_du_an.toLowerCase();
             
-            // Logic Quy mô (Sửa lỗi so sánh)
             let mSize = true;
             if (sizeF === 'lon') mSize = num > 2000;
             else if (sizeF === 'vua') mSize = (num >= 500 && num <= 2000);
-            else if (sizeF === 'nho') mSize = num < 500;
+            else if (sizeF === 'nho') mSize = (num > 0 && num < 500);
 
-            // Logic Phân cấp
             let mClass = true;
-            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('grand') || name.includes('luxury');
-            const isLow = name.includes('noxh') || name.includes('nhà ở xã hội');
+            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('ciputra') || name.includes('star');
+            const isLow = name.includes('noxh') || name.includes('xã hội');
             if (classF === 'cao') mClass = isHigh;
             else if (classF === 'thuong') mClass = isLow;
-            else if (classF === 'trung') mClass = (!isHigh && !isLow);
 
-            // Logic Tình trạng & Tìm kiếm
             const mStatus = statusF === 'all' || p.tinh_trang.toLowerCase().includes(statusF.toLowerCase());
             const mSearch = name.includes(searchF);
 
@@ -146,22 +140,19 @@
     }
 
     function updateSummary(data) {
-        let stats = { lon: 0, vua: 0, nho: 0, cao: 0, trung: 0, thap: 0 };
+        let stats = { lon: 0, vua: 0, nho: 0, cao: 0 };
         data.forEach(p => {
-            const n = parseInt(p.quy_mo_can.toString().replace(/,/g, '')) || 0;
+            const n = parseRealNumber(p.quy_mo_can);
             if (n > 2000) stats.lon++; else if (n >= 500) stats.vua++; else stats.nho++;
-            
             if (p.tên_du_an.toLowerCase().includes('vinhomes') || p.tên_du_an.toLowerCase().includes('ecopark')) stats.cao++;
-            else if (p.tên_du_an.toLowerCase().includes('noxh')) stats.thap++;
-            else stats.trung++;
         });
 
         document.getElementById('report-summary').innerHTML = `
-            <tr><td>Dự án Lớn:</td><td><span class="count-val">${stats.lon}</span></td></tr>
-            <tr><td>Dự án Vừa:</td><td><span class="count-val">${stats.vua}</span></td></tr>
-            <tr><td>Dự án Nhỏ:</td><td><span class="count-val">${stats.nho}</span></td></tr>
-            <tr><td>Phân khúc Cao cấp:</td><td><span class="count-val">${stats.cao}</span></td></tr>
-            <tr><td>Phân khúc Phổ thông:</td><td><span class="count-val">${stats.thap + stats.trung}</span></td></tr>
+            <tr><td>Dự án Lớn (>2k căn):</td><td><span class="count-val">${stats.lon}</span></td></tr>
+            <tr><td>Dự án Vừa (0.5k-2k):</td><td><span class="count-val">${stats.vua}</span></td></tr>
+            <tr><td>Dự án Nhỏ (<0.5k):</td><td><span class="count-val">${stats.nho}</span></td></tr>
+            <tr><td>Hàng Cao cấp:</td><td><span class="count-val">${stats.cao}</span></td></tr>
+            <tr><td>Hàng Phổ thông:</td><td><span class="count-val">${data.length - stats.cao}</span></td></tr>
         `;
         document.getElementById('total-match').innerText = data.length;
     }
@@ -176,17 +167,17 @@
             const lon = parseFloat(p.kinh_độ);
             const color = p.tinh_trang.includes("xây dựng") ? "#e74c3c" : "#27ae60";
 
-            L.circleMarker([lat, lon], { radius: 7, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9 }).addTo(markersLayer)
-             .bindPopup(`<b>${p.tên_du_an}</b><br>${p.quy_mo_can} căn`);
+            const marker = L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9 }).addTo(markersLayer);
+            marker.bindPopup(`<b>${p.tên_du_an}</b><br>Quy mô: ${p.quy_mo_can}`);
 
             const card = document.createElement('div');
             card.className = 'project-card';
             card.innerHTML = `
                 <strong style="color:var(--pana-blue)">${p.tên_du_an}</strong><br>
-                <small>${p.chu_dau_tu} | ${p.quy_mo_can} căn</small><br>
+                <small>${p.quy_mo_can} | ${p.khoang_cach}</small><br>
                 <span class="badge" style="background:${color}">${p.tinh_trang}</span>
             `;
-            card.onclick = () => { map.flyTo([lat, lon], 15); };
+            card.onclick = () => { map.flyTo([lat, lon], 15); marker.openPopup(); };
             list.appendChild(card);
         });
     }
@@ -198,7 +189,6 @@
         document.getElementById('searchInp').value = '';
         applyFilters();
     }
-
     window.onload = init;
 </script>
 </body>
