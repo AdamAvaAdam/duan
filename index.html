@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Project Management V19 - Chiến Lược 100KM</title>
+    <title>Panasonic Project Management V20</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -14,35 +14,37 @@
         .login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         #main-content { display: flex; width: 100%; height: 100%; filter: blur(15px); pointer-events: none; }
 
-        /* Sidebar Left: Project List */
+        /* Sidebar Left */
         #sidebar-left { flex: 0 0 380px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .header { background: var(--pana-blue); color: white; padding: 15px; font-weight: bold; text-align: center; font-size: 16px; }
         .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 5px solid transparent; }
         .project-card:hover { background: #f0f7ff; }
         .card-title { color: var(--pana-blue); font-weight: bold; font-size: 14px; display: block; margin-bottom: 3px; }
-        .card-qty { color: var(--pana-red); font-weight: bold; }
-
+        
         #map { flex: 1; z-index: 1; }
 
-        /* Sidebar Right: Analytics */
+        /* Sidebar Right */
         #sidebar-right { flex: 0 0 320px; background: var(--bg-light); border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; }
         .stat-group { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; overflow: hidden; }
-        .stat-header { background: #eee; padding: 8px 12px; font-size: 11px; font-weight: bold; color: #666; border-bottom: 1px solid #ddd; }
+        .stat-header { background: #eee; padding: 8px 12px; font-size: 11px; font-weight: bold; color: #666; border-bottom: 1px solid #ddd; text-transform: uppercase; }
         .stat-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .stat-table tr { cursor: pointer; }
+        .stat-table tr { cursor: pointer; transition: 0.2s; }
         .stat-table tr:hover { background: #eef6ff; }
         .active-filter { background: var(--pana-blue) !important; color: white !important; }
         .active-filter .stat-count { color: white !important; }
         .stat-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
         .stat-count { text-align: right; font-weight: bold; color: var(--pana-blue); }
 
-        /* Tags & Badges */
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; color: white; margin-top: 5px; margin-right: 5px; font-weight: bold; }
+        /* Tags */
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; margin-top: 5px; margin-right: 4px; font-weight: bold; }
         .bg-red { background: var(--pana-red); }
         .bg-green { background: #2ecc71; }
         .bg-gold { background: #f1c40f; color: #000; }
         .bg-blue { background: #3498db; }
         .bg-grey { background: #95a5a6; }
+        .bg-purple { background: #9b59b6; }
+        .bg-orange { background: #e67e22; }
+        .bg-teal { background: #16a085; }
     </style>
 </head>
 <body>
@@ -51,13 +53,13 @@
     <div class="login-box">
         <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/Panasonic_logo_%28Blue%29.svg" width="150" style="margin-bottom:20px">
         <input type="password" id="passInput" placeholder="Mật khẩu: HA5566" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;">
-        <button onclick="checkLogin()" style="width:100%; padding:12px; background:var(--pana-red); color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">ĐĂNG NHẬP HỆ THỐNG</button>
+        <button onclick="checkLogin()" style="width:100%; padding:12px; background:var(--pana-red); color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">ĐĂNG NHẬP</button>
     </div>
 </div>
 
 <div id="main-content">
     <div id="sidebar-left">
-        <div class="header">DANH SÁCH DỰ ÁN CHIẾN LƯỢC</div>
+        <div class="header">DANH SÁCH DỰ ÁN MIỀN BẮC</div>
         <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm theo tên, địa chỉ, CĐT..." onkeyup="applyFilters()" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;"></div>
         <div id="project-list" style="overflow-y:auto; flex: 1;"></div>
     </div>
@@ -68,12 +70,11 @@
         <div class="header" style="border-radius:8px; margin-bottom:10px">BÁO CÁO NHANH</div>
         
         <div class="stat-group">
-            <div class="stat-header">BÁN KÍNH VẬN CHUYỂN</div>
+            <div class="stat-header">QUY MÔ DỰ ÁN</div>
             <table class="stat-table">
-                <tr onclick="setQuickFilter('dist', 10, this)"><td>Vùng Nội đô (≤ 10km)</td><td id="dist-10" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('dist', 30, this)"><td>Vùng Cận đô (10-30km)</td><td id="dist-30" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('dist', 70, this)"><td>Vùng Vệ tinh (30-70km)</td><td id="dist-70" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('dist', 100, this)"><td>Vùng Liên tỉnh (70-100km)</td><td id="dist-100" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'lon', this)"><td>Dự án Lớn (≥ 2.000 căn)</td><td id="size-l" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'vua', this)"><td>Dự án Vừa (500-1.999)</td><td id="size-m" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'nho', this)"><td>Dự án Nhỏ (< 500)</td><td id="size-s" class="stat-count">0</td></tr>
             </table>
         </div>
 
@@ -87,14 +88,14 @@
         </div>
 
         <div class="stat-group">
-            <div class="stat-header">TÌNH TRẠNG</div>
+            <div class="stat-header">TÌNH TRẠNG THI CÔNG</div>
             <table class="stat-table">
                 <tr onclick="setQuickFilter('status', 'đang', this)"><td>Đang xây dựng</td><td id="status-doing" class="stat-count">0</td></tr>
                 <tr onclick="setQuickFilter('status', 'đã', this)"><td>Đã hoàn thiện</td><td id="status-done" class="stat-count">0</td></tr>
             </table>
         </div>
 
-        <button onclick="resetFilters()" style="width:100%; padding:10px; cursor:pointer; background:var(--pana-blue); color:white; border:none; border-radius:5px; font-weight:bold;">TẢI LẠI TẤT CẢ</button>
+        <button onclick="resetFilters()" style="width:100%; padding:10px; cursor:pointer; background:var(--pana-blue); color:white; border:none; border-radius:5px; font-weight:bold;">HIỆN TẤT CẢ DỰ ÁN</button>
     </div>
 </div>
 
@@ -116,7 +117,7 @@
     }
 
     function initApp() {
-        map = L.map('map').setView(HUB_POS, 9); // Zoom xa hơn để thấy 100km
+        map = L.map('map').setView(HUB_POS, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         markersLayer = L.layerGroup().addTo(map);
 
@@ -128,12 +129,16 @@
             })
         }).addTo(map);
 
-        // Các vòng bán kính mới: 10, 30, 50, 70, 100km
         [10, 30, 50, 70, 100].forEach(km => {
             L.circle(HUB_POS, { radius: km * 1000, color: '#005696', fillOpacity: 0.01, weight: 1, dashArray: '8, 8' }).addTo(map);
         });
 
         loadData();
+    }
+
+    function getCleanNum(val) {
+        if (!val) return 0;
+        return parseInt(val.toString().replace(/\D/g, '')) || 0;
     }
 
     function detectClass(p) {
@@ -149,6 +154,8 @@
             complete: function(res) {
                 allData = res.data.filter(p => p.vĩ_độ && p.kinh_độ).map(p => {
                     p.pClass = detectClass(p);
+                    let q = getCleanNum(p.quy_mo_can);
+                    p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
                     return p;
                 });
                 updateStats(allData);
@@ -158,18 +165,16 @@
     }
 
     function updateStats(data) {
-        let s = { d10:0, d30:0, d70:0, d100:0, high:0, mid:0, low:0, doing:0, done:0 };
+        let s = { l:0, m:0, sn:0, high:0, mid:0, low:0, doing:0, done:0 };
         data.forEach(p => {
-            let d = parseFloat(p.khoang_cach) || 0;
-            if(d <= 10) s.d10++; else if(d <= 30) s.d30++; else if(d <= 70) s.d70++; else s.d100++;
+            if(p.pSize === "Lớn") s.l++; else if(p.pSize === "Vừa") s.m++; else s.sn++;
             if(p.pClass === "Cao cấp") s.high++; else if(p.pClass === "Bình dân") s.low++; else s.mid++;
             let tt = (p.tinh_trang || "").toLowerCase();
             if(tt.includes("đang") || tt.includes("xây")) s.doing++; else s.done++;
         });
-        document.getElementById('dist-10').innerText = s.d10;
-        document.getElementById('dist-30').innerText = s.d30;
-        document.getElementById('dist-70').innerText = s.d70;
-        document.getElementById('dist-100').innerText = s.d100;
+        document.getElementById('size-l').innerText = s.l;
+        document.getElementById('size-m').innerText = s.m;
+        document.getElementById('size-s').innerText = s.sn;
         document.getElementById('class-high').innerText = s.high;
         document.getElementById('class-mid').innerText = s.mid;
         document.getElementById('class-low').innerText = s.low;
@@ -189,12 +194,8 @@
         const filtered = allData.filter(p => {
             const matchSearch = p.tên_du_an.toLowerCase().includes(search) || (p.địa_chỉ || "").toLowerCase().includes(search);
             let matchQuick = true;
-            if (currentFilter.type === 'dist') {
-                let d = parseFloat(p.khoang_cach) || 0;
-                if(currentFilter.value == 10) matchQuick = d <= 10;
-                else if(currentFilter.value == 30) matchQuick = d > 10 && d <= 30;
-                else if(currentFilter.value == 70) matchQuick = d > 30 && d <= 70;
-                else matchQuick = d > 70;
+            if (currentFilter.type === 'size') {
+                matchQuick = p.pSize.toLowerCase().startsWith(currentFilter.value[0]);
             } else if (currentFilter.type === 'class') {
                 matchQuick = p.pClass.toLowerCase().includes(currentFilter.value);
             } else if (currentFilter.type === 'status') {
@@ -213,10 +214,13 @@
             const lat = parseFloat(p.vĩ_độ), lon = parseFloat(p.kinh_độ);
             const isDoing = (p.tinh_trang || "").toLowerCase().includes("đang");
             const color = isDoing ? "#e60012" : "#2ecc71";
+            
+            // Màu sắc Tag
             const classColor = p.pClass === "Cao cấp" ? "bg-gold" : (p.pClass === "Trung cấp" ? "bg-blue" : "bg-grey");
+            const sizeColor = p.pSize === "Lớn" ? "bg-purple" : (p.pSize === "Vừa" ? "bg-orange" : "bg-teal");
 
-            L.circleMarker([lat, lon], { radius: 7, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
-             .bindPopup(`<b>${p.tên_du_an}</b><br>Khoảng cách: ${p.khoang_cach} km<br>Phân cấp: ${p.pClass}`);
+            L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
+             .bindPopup(`<b>${p.tên_du_an}</b><br>Quy mô: ${p.pSize}<br>Phân cấp: ${p.pClass}`);
 
             const card = document.createElement('div');
             card.className = 'project-card';
@@ -225,9 +229,10 @@
                 <span class="card-title">${p.tên_du_an}</span>
                 <div style="font-size:11px; color:#555;">
                     📍 ${p.địa_chỉ || 'N/A'} | <b>${p.khoang_cach} km</b><br>
-                    📦 Số căn: <span class="card-qty">${p.quy_mo_can}</span>
+                    📦 Số căn: <b style="color:var(--pana-red)">${p.quy_mo_can}</b>
                 </div>
-                <div>
+                <div style="margin-top:2px;">
+                    <span class="badge ${sizeColor}">Quy mô: ${p.pSize}</span>
                     <span class="badge ${classColor}">${p.pClass}</span>
                     <span class="badge ${isDoing ? 'bg-red' : 'bg-green'}">${p.tinh_trang}</span>
                 </div>
