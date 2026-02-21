@@ -2,66 +2,100 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Phúc Lợi - Dashboard Điều Hành</title>
+    <title>Panasonic Phúc Lợi - Command Center 30km</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        :root { --pana-blue: #005696; --pana-red: #e60012; }
-        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; }
+        :root { --pana-blue: #005696; --pana-red: #e60012; --dark: #333; }
+        body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; background: #eee; overflow: hidden; }
         
-        /* Sidebar hiển thị thông tin */
-        #sidebar { flex: 0 0 400px; background: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
-        .header { background: var(--pana-blue); color: white; padding: 20px; text-align: center; }
-        .filter-area { padding: 15px; border-bottom: 1px solid #eee; background: #f9f9f9; }
-        .search-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        /* Sidebar trái: Danh sách */
+        #sidebar-left { flex: 0 0 350px; background: white; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
         
-        #project-list { overflow-y: auto; flex-grow: 1; background: #fff; }
-        .project-card { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
-        .project-card:hover { background: #f0f7ff; }
-        .project-card.active { border-left: 5px solid var(--pana-red); background: #f0f7ff; }
+        /* Sidebar phải: Dashboard & Filter */
+        #sidebar-right { flex: 0 0 300px; background: #f8f9fa; border-left: 1px solid #ddd; display: flex; flex-direction: column; padding: 15px; z-index: 1000; overflow-y: auto;}
         
-        /* Bản đồ */
         #map { flex: 1; height: 100%; }
 
-        /* Tiện ích */
-        .info-label { font-size: 12px; color: #666; display: block; margin-top: 3px; }
-        .status-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; color: white; margin-top: 5px; font-weight: bold; }
-        .dist-tag { color: var(--pana-red); font-weight: bold; float: right; }
+        .header { background: var(--pana-blue); color: white; padding: 15px; text-align: center; }
+        .filter-section { margin-bottom: 20px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .filter-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; display: block; color: var(--pana-blue); border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        
+        select { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
+        
+        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; }
+        .project-card:hover { background: #f0f7ff; }
+        .project-card.active { border-left: 5px solid var(--pana-red); background: #f0f7ff; }
+
+        .stat-card { background: var(--pana-blue); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        .stat-num { font-size: 24px; font-weight: bold; display: block; }
+
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; text-transform: uppercase; }
+        .bg-red { background: #e74c3c; }
+        .bg-green { background: #27ae60; }
+        .bg-blue { background: #3498db; }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
+<div id="sidebar-left">
     <div class="header">
-        <h2 style="margin:0">PANASONIC PHÚC LỢI</h2>
-        <small>Showroom & Tổng kho 5.500m²</small>
+        <h3 style="margin:0">DANH SÁCH DỰ ÁN</h3>
     </div>
-    <div class="filter-area">
-        <input type="text" id="searchInput" class="search-input" placeholder="Tìm tên dự án hoặc chủ đầu tư..." onkeyup="filterProjects()">
-    </div>
-    <div id="project-list">Đang tải dữ liệu...</div>
+    <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm nhanh..." style="width:100%; padding:8px;" onkeyup="applyFilters()"></div>
+    <div id="project-list" style="overflow-y:auto"></div>
 </div>
 
 <div id="map"></div>
 
+<div id="sidebar-right">
+    <div class="stat-card">
+        <span id="count-display" class="stat-num">0</span>
+        <small>DỰ ÁN PHÙ HỢP</small>
+    </div>
+
+    <div class="filter-section">
+        <span class="filter-title"><i class="fas fa-filter"></i> QUY MÔ CĂN</span>
+        <select id="f-size" onchange="applyFilters()">
+            <option value="all">Tất cả quy mô</option>
+            <option value="lon">Lớn (> 2000 căn)</option>
+            <option value="vua">Vừa (500 - 2000 căn)</option>
+            <option value="nho">Nhỏ (< 500 căn)</option>
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <span class="filter-title"><i class="fas fa-gem"></i> PHÂN CẤP HÀNG</span>
+        <select id="f-class" onchange="applyFilters()">
+            <option value="all">Tất cả phân khúc</option>
+            <option value="cao">Cao cấp (Vinhomes, Ecopark...)</option>
+            <option value="trung">Trung cấp</option>
+            <option value="thuong">Thường / NOXH</option>
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <span class="filter-title"><i class="fas fa-sync"></i> TÌNH TRẠNG</span>
+        <select id="f-status" onchange="applyFilters()">
+            <option value="all">Tất cả tình trạng</option>
+            <option value="Hoàn thiện">Đã hoàn thiện</option>
+            <option value="xây dựng">Đang xây dựng</option>
+            <option value="duyệt">Đã duyệt hồ sơ / Móng</option>
+        </select>
+    </div>
+    
+    <button onclick="resetFilters()" style="padding:10px; cursor:pointer; background:#ddd; border:none; border-radius:5px;">Xóa tất cả bộ lọc</button>
+</div>
+
 <script>
     const showroomPos = [21.048766, 105.922618];
-    const map = L.map('map').setView(showroomPos, 11); // Zoom rộng để thấy 30km
-    
+    const map = L.map('map').setView(showroomPos, 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Marker Tổng kho và Vòng bán kính 30km
+    // Tổng kho & Vòng 30km
     L.marker(showroomPos).addTo(map).bindPopup("<b>TỔNG KHO PHÚC LỢI</b>").openPopup();
-    
-    // Vòng tròn độ phủ 30km (Màu xanh nhạt)
-    L.circle(showroomPos, {
-        radius: 30000, 
-        color: '#005696', 
-        fillOpacity: 0.05, 
-        weight: 2,
-        dashArray: '10, 10'
-    }).addTo(map);
+    L.circle(showroomPos, { radius: 30000, color: 'blue', fillOpacity: 0.05, weight: 1, dashArray: '5,5' }).addTo(map);
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
@@ -70,61 +104,85 @@
 
     function init() {
         Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                allData = results.data.filter(p => p.vĩ_độ && p.kinh_độ);
-                renderUI(allData);
+            download: true, header: true,
+            complete: function(res) {
+                allData = res.data.filter(p => p.vĩ_độ && p.kinh_độ);
+                applyFilters();
             }
         });
     }
 
+    function applyFilters() {
+        const sizeF = document.getElementById('f-size').value;
+        const classF = document.getElementById('f-class').value;
+        const statusF = document.getElementById('f-status').value;
+        const searchF = document.getElementById('searchInp').value.toLowerCase();
+
+        const filtered = allData.filter(p => {
+            const num = parseInt(p.quy_mo_can.replace(/,/g,'')) || 0;
+            const name = p.tên_du_an.toLowerCase();
+            const cdt = p.chu_dau_tu.toLowerCase();
+
+            // Lọc Quy mô
+            let mSize = true;
+            if(sizeF === 'lon') mSize = num > 2000;
+            if(sizeF === 'vua') mSize = num >= 500 && num <= 2000;
+            if(sizeF === 'nho') mSize = num < 500;
+
+            // Lọc Phân cấp (Logic dựa trên tên hoặc CĐT)
+            let mClass = true;
+            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('diamond') || name.includes('sunshine') || name.includes('heritage');
+            const isNormal = name.includes('noxh') || name.includes('mường thanh') || name.includes('thanh hà');
+            if(classF === 'cao') mClass = isHigh;
+            if(classF === 'thuong') mClass = isNormal;
+            if(classF === 'trung') mClass = !isHigh && !isNormal;
+
+            // Lọc Tình trạng
+            const mStatus = statusF === 'all' || p.tinh_trang.toLowerCase().includes(statusF.toLowerCase());
+            
+            // Lọc Tìm kiếm
+            const mSearch = name.includes(searchF) || cdt.includes(searchF);
+
+            return mSize && mClass && mStatus && mSearch;
+        });
+
+        renderUI(filtered);
+    }
+
     function renderUI(data) {
         markersLayer.clearLayers();
-        const listContainer = document.getElementById('project-list');
-        listContainer.innerHTML = "";
+        const list = document.getElementById('project-list');
+        list.innerHTML = "";
+        document.getElementById('count-display').innerText = data.length;
 
-        data.forEach((p) => {
+        data.forEach(p => {
             const lat = parseFloat(p.vĩ_độ);
             const lon = parseFloat(p.kinh_độ);
-            const statusColor = p.tinh_trang.includes("Đang xây") ? "#e74c3c" : "#27ae60";
+            const color = p.tinh_trang.includes("xây dựng") ? "#e74c3c" : (p.tinh_trang.includes("duyệt") ? "#3498db" : "#27ae60");
 
-            // 1. Hiển thị trên bản đồ (Vòng tròn quy mô dự án)
-            const circleRadius = (parseInt(p.quy_mo_can.replace(/,/g,'')) || 500) / 5; // Tỉ lệ hiển thị
-            L.circle([lat, lon], {
-                radius: circleRadius > 1000 ? 1000 : (circleRadius < 200 ? 200 : circleRadius),
-                color: statusColor,
-                fillOpacity: 0.3
-            }).addTo(markersLayer).bindPopup(`<b>${p.tên_du_an}</b><br>${p.chu_dau_tu}`);
+            // Vẽ lên bản đồ
+            const marker = L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer);
+            marker.bindPopup(`<b>${p.tên_du_an}</b><br>CĐT: ${p.chu_dau_tu}`);
 
-            // 2. Hiển thị bảng danh sách bên trái
+            // Thêm vào list trái
             const card = document.createElement('div');
             card.className = 'project-card';
             card.innerHTML = `
-                <span class="dist-tag">${p.khoang_cach}</span>
-                <strong style="color:var(--pana-blue); font-size:15px;">${p.tên_du_an}</strong>
-                <span class="info-label"><b>Chủ đầu tư:</b> ${p.chu_dau_tu}</span>
-                <span class="info-label"><b>Quy mô:</b> ${p.quy_mo_can} căn</span>
-                <span class="info-label"><b>Ghi chú:</b> ${p.ghi_chu_kinh_doanh}</span>
-                <span class="status-badge" style="background:${statusColor}">${p.tinh_trang}</span>
+                <b style="color:var(--pana-blue)">${p.tên_du_an}</b> <span style="float:right">${p.khoang_cach}</span><br>
+                <small>CĐT: ${p.chu_dau_tu} | Căn: ${p.quy_mo_can}</small><br>
+                <span class="badge" style="background:${color}">${p.tinh_trang}</span>
             `;
-
-            card.onclick = () => {
-                map.flyTo([lat, lon], 15);
-                document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-            };
-            listContainer.appendChild(card);
+            card.onclick = () => { map.flyTo([lat, lon], 15); marker.openPopup(); };
+            list.appendChild(card);
         });
     }
 
-    function filterProjects() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allData.filter(p => 
-            p.tên_du_an.toLowerCase().includes(query) || 
-            p.chu_dau_tu.toLowerCase().includes(query)
-        );
-        renderUI(filtered);
+    function resetFilters() {
+        document.getElementById('f-size').value = 'all';
+        document.getElementById('f-class').value = 'all';
+        document.getElementById('f-status').value = 'all';
+        document.getElementById('searchInp').value = '';
+        applyFilters();
     }
 
     window.onload = init;
