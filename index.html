@@ -2,43 +2,33 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Hệ Thống Điều Hành Panasonic Phúc Lợi - Báo Cáo Tổng Lực</title>
+    <title>Panasonic Phúc Lợi - Hệ Thống Điều Hành Chính Xác V6</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --pana-blue: #005696; --pana-red: #e60012; --status-blue: #3498db; --status-green: #27ae60; }
         body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; background: #f4f4f4; }
-        
-        /* Login */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--pana-blue); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-box { background: white; padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 350px; }
         .login-box input { width: 100%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; text-align: center; font-size: 16px; }
         .login-box button { width: 100%; padding: 12px; background: var(--pana-red); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-
-        /* Layout */
-        #main-content { display: flex; width: 100%; height: 100%; filter: blur(15px); pointer-events: none; transition: 0.5s; }
-        #sidebar-left { flex: 0 0 350px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        #main-content { display: flex; width: 100%; height: 100%; filter: blur(15px); pointer-events: none; }
+        #sidebar-left { flex: 0 0 360px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         #sidebar-right { flex: 0 0 320px; background: #fff; border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; }
         #map { flex: 1; }
-
         .header { background: var(--pana-blue); color: white; padding: 15px; text-align: center; }
         .stat-box { background: var(--pana-blue); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-        
-        /* Bảng thống kê tổng hợp */
-        .report-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 5px; background: #fff; border: 1px solid #eee; margin-bottom: 20px; }
-        .report-table th { background: #f8f9fa; text-align: left; padding: 8px; border-bottom: 2px solid var(--pana-blue); font-size: 14px; }
+        .report-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #eee; }
+        .report-table th { background: #f8f9fa; padding: 8px; border-bottom: 2px solid var(--pana-blue); text-align: left; }
         .report-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
         .val { font-weight: bold; color: var(--pana-red); text-align: right; }
-
-        /* Card dự án */
-        .project-card { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 4px solid transparent; }
         .project-card:hover { background: #f8f9fa; }
-        .badge { display: inline-block; padding: 4px 10px; border-radius: 5px; color: white; font-size: 10px; font-weight: bold; margin-top: 8px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; color: white; font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
         .bg-red { background: var(--pana-red); }
         .bg-green { background: var(--status-green); }
         .bg-blue { background: var(--status-blue); }
-        
         .filter-group { margin-bottom: 12px; padding: 10px; background: #fdfdfd; border: 1px solid #eee; border-radius: 5px; }
         .filter-group label { font-weight: bold; font-size: 12px; color: var(--pana-blue); display: block; margin-bottom: 5px; }
         select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
@@ -49,46 +39,38 @@
 <div id="login-overlay">
     <div class="login-box">
         <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/Panasonic_logo_%28Blue%29.svg" width="200">
-        <h2 style="color:var(--pana-blue); margin-top:10px;">BAN DỰ ÁN</h2>
-        <input type="password" id="passInput" placeholder="Mật khẩu: HA5566">
+        <h2 style="color:var(--pana-blue); margin-top:10px;">HỆ THỐNG ĐIỀU HÀNH</h2>
+        <input type="password" id="passInput" placeholder="Mật khẩu truy cập">
         <button onclick="checkLogin()">VÀO HỆ THỐNG</button>
-        <p id="errorMsg" style="color:red; display:none; margin-top:10px;">Mật khẩu không đúng</p>
+        <p id="errorMsg" style="color:red; display:none; margin-top:10px;">Sai mật khẩu!</p>
     </div>
 </div>
 
 <div id="main-content">
     <div id="sidebar-left">
-        <div class="header"><h3>DỮ LIỆU DỰ ÁN</h3></div>
-        <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm dự án/Chủ đầu tư..." onkeyup="applyFilters()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;"></div>
+        <div class="header"><h3 style="margin:0">CHI TIẾT 116 DỰ ÁN</h3></div>
+        <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm dự án, CĐT, khu vực..." onkeyup="applyFilters()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;"></div>
         <div id="project-list" style="overflow-y:auto; flex-grow: 1;"></div>
     </div>
-
     <div id="map"></div>
-
     <div id="sidebar-right">
         <div class="stat-box">
             <div style="font-size:28px; font-weight:bold;" id="total-match">0</div>
-            <small>DỰ ÁN ĐANG HIỂN THỊ</small>
+            <small>DỰ ÁN PHÙ HỢP BỘ LỌC</small>
         </div>
-
         <table class="report-table">
-            <thead><tr><th colspan="2">BÁO CÁO TỔNG THỊ TRƯỜNG</th></tr></thead>
-            <tbody id="global-stats-body">
-                </tbody>
+            <thead><tr><th colspan="2">THỐNG KÊ TOÀN BỘ THỊ TRƯỜNG</th></tr></thead>
+            <tbody id="global-stats-body"></tbody>
         </table>
-
-        <hr style="border: 0.5px solid #eee; margin-bottom: 20px;">
-        <strong style="font-size:14px; color:var(--pana-blue)">BỘ LỌC TÌM KIẾM</strong>
-        <div class="filter-group"><label>QUY MÔ</label><select id="f-size" onchange="applyFilters()"><option value="all">Tất cả</option><option value="lon">Lớn (> 2.000 căn)</option><option value="vua">Vừa (500-2.000 căn)</option><option value="nho">Nhỏ (< 500 căn)</option></select></div>
+        <div class="filter-group"><label>QUY MÔ (Sửa lỗi lọc)</label><select id="f-size" onchange="applyFilters()"><option value="all">Tất cả</option><option value="lon">Lớn (≥ 2.000 căn)</option><option value="vua">Vừa (500 - 1.999 căn)</option><option value="nho">Nhỏ (< 500 căn)</option></select></div>
         <div class="filter-group"><label>PHÂN KHÚC</label><select id="f-class" onchange="applyFilters()"><option value="all">Tất cả</option><option value="cao">Cao cấp</option><option value="trung">Trung cấp</option><option value="thuong">Bình dân/NOXH</option></select></div>
-        <div class="filter-group"><label>TIẾN ĐỘ</label><select id="f-status" onchange="applyFilters()"><option value="all">Tất cả</option><option value="Hoàn thiện">Đã hoàn thiện</option><option value="xây dựng">Đang thi công</option><option value="duyệt">Duyệt hồ sơ/Móng</option></select></div>
-        
-        <button onclick="resetFilters()" style="width:100%; padding:10px; border:none; cursor:pointer; background:#ddd; border-radius:5px; font-weight:bold;">XÓA LỌC</button>
+        <div class="filter-group"><label>TIẾN ĐỘ</label><select id="f-status" onchange="applyFilters()"><option value="all">Tất cả</option><option value="Hoàn thiện">Đã hoàn thiện</option><option value="xây dựng">Đang thi công</option><option value="duyệt">Móng/Hồ sơ</option></select></div>
+        <button onclick="resetFilters()" style="width:100%; padding:10px; border:none; cursor:pointer; background:#ddd; border-radius:5px; font-weight:bold;">RESET BỘ LỌC</button>
     </div>
 </div>
 
 <script>
-    const SECRET = "Pana2026";
+    const SECRET = "HA5566";
     function checkLogin() {
         if(document.getElementById('passInput').value === SECRET) {
             document.getElementById('login-overlay').style.display = 'none';
@@ -110,9 +92,14 @@
         loadData();
     }
 
+    // HÀM QUAN TRỌNG NHẤT: Bóc tách số tuyệt đối
     function parseNum(val) { 
         if(!val) return 0;
-        return parseInt(val.toString().replace(/[^0-9]/g, '')) || 0; 
+        // Xóa dấu chấm phân cách hàng nghìn nếu có (ví dụ 1.500 -> 1500)
+        let s = val.toString().replace(/\./g, '');
+        // Lấy tất cả các chữ số liền nhau đầu tiên tìm thấy
+        let match = s.match(/\d+/);
+        return match ? parseInt(match[0]) : 0; 
     }
 
     function loadData() {
@@ -121,7 +108,7 @@
             download: true, header: true,
             complete: function(res) {
                 allData = res.data.filter(p => p.vĩ_độ && p.kinh_độ);
-                calculateGlobalStats(); // Tính toán 1 lần duy nhất cho toàn bộ data
+                calculateGlobalStats(); 
                 applyFilters();
             }
         });
@@ -131,12 +118,14 @@
         let g = { lon:0, vua:0, nho:0, cao:0, trung:0, thap:0, build:0, done:0, plan:0 };
         allData.forEach(p => {
             const n = parseNum(p.quy_mo_can);
-            if(n > 2000) g.lon++; else if(n >= 500) g.vua++; else g.nho++;
+            if(n >= 2000) g.lon++; 
+            else if(n >= 500) g.vua++; 
+            else g.nho++;
             
             const name = p.tên_du_an.toLowerCase();
-            if(name.includes('vinhomes') || name.includes('ecopark') || name.includes('ciputra') || name.includes('grand')) g.cao++;
-            else if(name.includes('noxh') || name.includes('xã hội')) g.thap++;
-            else g.trung++;
+            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('ciputra') || name.includes('star') || name.includes('grand') || name.includes('diamond');
+            const isLow = name.includes('noxh') || name.includes('xã hội') || name.includes('đặng xá');
+            if(isHigh) g.cao++; else if(isLow) g.thap++; else g.trung++;
 
             const st = p.tinh_trang.toLowerCase();
             if(st.includes('xây dựng')) g.build++;
@@ -145,15 +134,14 @@
         });
 
         document.getElementById('global-stats-body').innerHTML = `
-            <tr><td>Dự án Lớn (>2k căn)</td><td class="val">${g.lon}</td></tr>
+            <tr><td>Dự án Lớn (≥2k căn)</td><td class="val">${g.lon}</td></tr>
             <tr><td>Dự án Vừa (500-2k)</td><td class="val">${g.vua}</td></tr>
             <tr><td>Dự án Nhỏ (<500 căn)</td><td class="val">${g.nho}</td></tr>
-            <tr style="background:#f0f7ff"><td><b>Phân khúc Cao cấp</b></td><td class="val">${g.cao}</td></tr>
-            <tr style="background:#f0f7ff"><td><b>Phân khúc Trung cấp</b></td><td class="val">${g.trung}</td></tr>
-            <tr style="background:#f0f7ff"><td><b>Bình dân / NOXH</b></td><td class="val">${g.thap}</td></tr>
+            <tr style="background:#f9f9f9"><td><b>Cao cấp</b></td><td class="val">${g.cao}</td></tr>
+            <tr style="background:#f9f9f9"><td><b>Trung cấp</b></td><td class="val">${g.trung}</td></tr>
+            <tr style="background:#f9f9f9"><td><b>Bình dân / NOXH</b></td><td class="val">${g.thap}</td></tr>
             <tr><td><span style="color:red">●</span> Đang thi công</td><td class="val">${g.build}</td></tr>
             <tr><td><span style="color:green">●</span> Đã hoàn thiện</td><td class="val">${g.done}</td></tr>
-            <tr><td><span style="color:blue">●</span> Duyệt hồ sơ/Móng</td><td class="val">${g.plan}</td></tr>
         `;
     }
 
@@ -167,10 +155,16 @@
             const num = parseNum(p.quy_mo_can);
             const name = p.tên_du_an.toLowerCase();
             
-            let mSize = (sizeF === 'all') || (sizeF==='lon' && num>2000) || (sizeF==='vua' && num>=500 && num<=2000) || (sizeF==='nho' && num < 500);
-            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('ciputra') || name.includes('grand');
-            const isLow = name.includes('noxh') || name.includes('xã hội');
+            // Logic lọc mới: Đảm bảo khớp với thống kê tổng
+            let mSize = true;
+            if(sizeF === 'lon') mSize = num >= 2000;
+            else if(sizeF === 'vua') mSize = (num >= 500 && num < 2000);
+            else if(sizeF === 'nho') mSize = (num > 0 && num < 500);
+
+            const isHigh = name.includes('vinhomes') || name.includes('ecopark') || name.includes('ciputra') || name.includes('star') || name.includes('grand') || name.includes('diamond');
+            const isLow = name.includes('noxh') || name.includes('xã hội') || name.includes('đặng xá');
             let mClass = (classF === 'all') || (classF==='cao' && isHigh) || (classF==='thuong' && isLow) || (classF==='trung' && !isHigh && !isLow);
+            
             let mStatus = (statusF === 'all') || p.tinh_trang.toLowerCase().includes(statusF.toLowerCase());
             let mSearch = name.includes(searchF) || p.chu_dau_tu.toLowerCase().includes(searchF);
 
@@ -187,16 +181,16 @@
         document.getElementById('total-match').innerText = data.length;
 
         data.forEach(p => {
-            let statusClass = "bg-blue";
-            if(p.tinh_trang.toLowerCase().includes("xây dựng")) statusClass = "bg-red";
-            if(p.tinh_trang.toLowerCase().includes("hoàn thiện")) statusClass = "bg-green";
+            let statusClass = "bg-blue", markerColor = "#3498db";
+            if(p.tinh_trang.toLowerCase().includes("xây dựng")) { statusClass = "bg-red"; markerColor = "#e60012"; }
+            if(p.tinh_trang.toLowerCase().includes("hoàn thiện")) { statusClass = "bg-green"; markerColor = "#27ae60"; }
 
-            const markerColor = p.tinh_trang.toLowerCase().includes("xây dựng") ? "#e74c3c" : (p.tinh_trang.toLowerCase().includes("hoàn thiện") ? "#27ae60" : "#3498db");
             L.circleMarker([p.vĩ_độ, p.kinh_độ], { radius: 8, fillColor: markerColor, color: "#fff", weight: 2, fillOpacity: 0.9 }).addTo(markersLayer)
              .bindPopup(`<b>${p.tên_du_an}</b><br>${p.tinh_trang}`);
 
             const card = document.createElement('div');
             card.className = 'project-card';
+            card.style.borderLeftColor = markerColor;
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between;">
                     <strong style="color:var(--pana-blue); font-size:14px;">${p.tên_du_an}</strong>
