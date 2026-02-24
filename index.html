@@ -2,169 +2,183 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Project Management Dashboard</title>
+    <title>Panasonic Live Dashboard - Phúc Lợi</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
     <style>
-        :root {
-            --primary-color: #005ab2; /* Màu xanh Panasonic */
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-        }
-
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg-color); }
-
-        /* Sidebar bên trái: Danh sách dự án */
-        .sidebar-left { width: 350px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
-        .search-box { padding: 15px; border-bottom: 1px solid #eee; }
-        .search-box input { width: 90%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        :root { --blue: #005ab2; --red: #e74c3c; --green: #27ae60; --orange: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: #f4f4f4; }
         
-        .project-list { flex-grow: 1; overflow-y: auto; }
-        .project-item { padding: 15px; border-bottom: 1px solid #f9f9f9; cursor: pointer; transition: 0.2s; }
-        .project-item:hover { background: #eef6ff; }
-        .project-item h4 { margin: 0 0 5px 0; color: var(--primary-color); }
-        .project-item p { margin: 2px 0; font-size: 13px; color: #666; }
-
-        /* Vùng trung tâm: Bản đồ */
-        .main-map { flex-grow: 1; position: relative; background: #e0ddd8; display: flex; align-items: center; justify-content: center; }
-        .map-placeholder { text-align: center; color: #888; }
-
-        /* Sidebar bên phải: Báo cáo & Lọc */
-        .sidebar-right { width: 300px; background: white; border-left: 1px solid #ddd; padding: 20px; }
-        .filter-section, .report-section { margin-bottom: 30px; }
-        h3 { border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 18px; }
+        .sidebar-left { width: 380px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; z-index: 1000; }
+        .header-box { padding: 15px; background: var(--blue); color: white; }
+        .search-box { padding: 10px; border-bottom: 1px solid #eee; }
+        .search-box input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         
-        select { width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #ddd; }
-
-        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ddd; }
-        .stat-card.active { border-left-color: #28a745; }
-        .stat-card b { font-size: 20px; display: block; }
+        #projectList { flex: 1; overflow-y: auto; }
+        .project-card { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .project-card:hover { background: #f9f9f9; }
+        .project-card h4 { margin: 0 0 5px; color: var(--blue); font-size: 14px; text-transform: uppercase; }
+        .project-card p { margin: 2px 0; font-size: 12px; color: #555; }
         
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: white; margin-top: 5px; }
-        .tag-dang-xd { background: #dc3545; }
-        .tag-dang-ht { background: #28a745; }
-        .tag-da-xong { background: #007bff; }
-        .tag-sap-tk { background: #fd7e14; }
+        #map { flex: 1; }
+
+        .sidebar-right { width: 280px; background: white; border-left: 1px solid #ddd; padding: 15px; z-index: 1000; }
+        .filter-group { margin-bottom: 20px; }
+        select { width: 100%; padding: 10px; border-radius: 5px; }
+        
+        .stat-item { background: #f0f2f5; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #ccc; font-size: 13px; }
+        .badge { padding: 3px 7px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold; }
+        
+        /* Màu cho từng trạng thái */
+        .st-dang-xd { background: var(--red); }
+        .st-dang-ht { background: var(--green); }
+        .st-da-xong { background: var(--blue); }
+        .st-sap-tk { background: var(--orange); }
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar-left">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Tìm tên dự án, chủ đầu tư..." onkeyup="handleSearch()">
-        </div>
-        <div id="projectList" class="project-list">
-            </div>
+<div id="loading" class="loading-overlay">Đang tải dữ liệu từ Google Sheets...</div>
+
+<div class="sidebar-left">
+    <div class="header-box">
+        <h2 style="margin:0; font-size:18px;">DANH SÁCH DỰ ÁN</h2>
     </div>
-
-    <div class="main-map" id="map">
-        <div class="map-placeholder">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/Map_placeholder.png" width="100" style="opacity: 0.3;"><br>
-            BẢN ĐỒ DỰ ÁN MIỀN BẮC (BÁN KÍNH 30KM)<br>
-            <small>(Tích hợp Google Maps/Leaflet tại đây)</small>
-        </div>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Tìm tên dự án, CĐT..." onkeyup="runAllFilters()">
     </div>
+    <div id="projectList"></div>
+</div>
 
-    <div class="sidebar-right">
-        <div class="filter-section">
-            <h3>BỘ LỌC CHIẾN LƯỢC</h3>
-            <label>Tình trạng thi công:</label>
-            <select id="filterStatus" onchange="applyFilters()">
-                <option value="all">-- Tất cả tình trạng --</option>
-                </select>
-        </div>
+<div id="map"></div>
 
-        <div class="report-section">
-            <h3>BÁO CÁO NHANH</h3>
-            <div id="statsSummary">
+<div class="sidebar-right">
+    <div class="filter-group">
+        <h3 style="font-size:14px;">BỘ LỌC TÌNH TRẠNG</h3>
+        <select id="statusFilter" onchange="runAllFilters()">
+            <option value="all">Tất cả tình trạng</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <h3 style="font-size:14px;">THỐNG KÊ NHANH</h3>
+        <div id="statsArea"></div>
+    </div>
+</div>
+
+<script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
+    
+    let allData = [];
+    const map = L.map('map').setView([21.0285, 105.8542], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    let markersLayer = L.layerGroup().addTo(map);
+
+    // 1. LẤY DỮ LIỆU TỪ GOOGLE SHEETS
+    function loadSheetData() {
+        Papa.parse(SHEET_URL, {
+            download: true,
+            header: true,
+            complete: function(results) {
+                allData = results.data.filter(row => row['Tên Dự Án']); // Lọc bỏ dòng trống
+                initStatusFilter();
+                runAllFilters();
+                document.getElementById('loading').style.display = 'none';
+            },
+            error: function(err) {
+                alert("Lỗi kết nối trang tính: " + err);
+            }
+        });
+    }
+
+    // 2. KHỞI TẠO BỘ LỌC ĐỘNG
+    function initStatusFilter() {
+        const filter = document.getElementById('statusFilter');
+        const statuses = [...new Set(allData.map(item => item['Tình Trạng']))];
+        statuses.forEach(st => {
+            if(st) {
+                let opt = document.createElement('option');
+                opt.value = st; opt.innerHTML = st;
+                filter.appendChild(opt);
+            }
+        });
+    }
+
+    // 3. XỬ LÝ MÀU SẮC DỰA TRÊN TÊN TRẠNG THÁI
+    function getStatusStyle(status) {
+        if (!status) return {class: 'st-sap-tk', color: 'gray'};
+        const s = status.toLowerCase();
+        if (s.includes("xây dựng")) return {class: 'st-dang-xd', color: '#e74c3c'};
+        if (s.includes("hoàn thiện")) return {class: 'st-dang-ht', color: '#27ae60'};
+        if (s.includes("xong") || s.includes("bàn giao")) return {class: 'st-da-xong', color: '#005ab2'};
+        return {class: 'st-sap-tk', color: '#f39c12'};
+    }
+
+    // 4. LỌC VÀ HIỂN THỊ
+    function runAllFilters() {
+        const selectedStatus = document.getElementById('statusFilter').value;
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        
+        const filtered = allData.filter(p => {
+            const matchStatus = (selectedStatus === 'all' || p['Tình Trạng'] === selectedStatus);
+            const matchSearch = p['Tên Dự Án'].toLowerCase().includes(keyword) || p['CĐT'].toLowerCase().includes(keyword);
+            return matchStatus && matchSearch;
+        });
+
+        renderContent(filtered);
+    }
+
+    function renderContent(data) {
+        const list = document.getElementById('projectList');
+        list.innerHTML = '';
+        markersLayer.clearLayers();
+        
+        let stats = {};
+
+        data.forEach(p => {
+            const lat = parseFloat(p['Vĩ Độ']);
+            const lng = parseFloat(p['Kinh Độ']);
+            const info = getStatusStyle(p['Tình Trạng']);
+            
+            // Thống kê
+            stats[p['Tình Trạng']] = (stats[p['Tình Trạng']] || 0) + 1;
+
+            // Render List
+            list.innerHTML += `
+                <div class="project-card" onclick="map.setView([${lat}, ${lng}], 15)">
+                    <h4>${p['Tên Dự Án']}</h4>
+                    <p><b>CĐT:</b> ${p['CĐT']} | <b>Cách kho:</b> ${p['Cách']}</p>
+                    <p><b>Quy mô:</b> ${p['Số Căn']} căn | ${p['Diện Tích']}</p>
+                    <span class="badge ${info.class}">${p['Tình Trạng']}</span>
                 </div>
-        </div>
-    </div>
+            `;
 
-    <script>
-        // DỮ LIỆU DỰ ÁN (Đã cập nhật các dự án mới nhất của bạn)
-        const projects = [
-            {id: 1, ten: "Ruby City CT3", cdt: "Thăng Long VN", tinhTrang: "Đã xong", khoangCach: "0.5 km", soCan: 1120, dienTich: "0.5 ha"},
-            {id: 2, ten: "Ruby Park (Mới)", cdt: "Thăng Long VN", tinhTrang: "Đang HT", khoangCach: "0.6 km", soCan: 400, dienTich: "1.2 ha"},
-            {id: 51, ten: "Vinhomes Cổ Loa", cdt: "Vingroup", tinhTrang: "Sắp triển khai", khoangCach: "12.5 km", soCan: 15000, dienTich: "385 ha"},
-            {id: 63, ten: "Him Lam Vĩnh Tuy", cdt: "Him Lam", tinhTrang: "Đang XD", khoangCach: "5.5 km", soCan: 1000, dienTich: "16.2 ha"},
-            {id: 102, ten: "Lumi Hanoi", cdt: "CapitaLand", tinhTrang: "Đang XD", khoangCach: "28.0 km", soCan: 3950, dienTich: "5.6 ha"},
-            {id: 105, ten: "Masteri Lumiere EverGreen", cdt: "Masterise", tinhTrang: "Đang HT", khoangCach: "28.3 km", soCan: 2294, dienTich: "1.7 ha"},
-            // ... Bạn có thể copy thêm 170 dự án vào đây
-        ];
+            // Render Markers
+            if (!isNaN(lat) && !isNaN(lng)) {
+                L.circleMarker([lat, lng], {
+                    radius: 8, fillColor: info.color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.8
+                }).addTo(markersLayer).bindPopup(`<b>${p['Tên Dự Án']}</b><br>CĐT: ${p['CĐT']}<br>HT: ${p['Hoàn Thiện']}`);
+            }
+        });
 
-        // 1. KHỞI TẠO BỘ LỌC ĐỘNG (Tự quét tình trạng để tạo Select Option)
-        function initFilters() {
-            const select = document.getElementById('filterStatus');
-            const statuses = [...new Set(projects.map(p => p.tinhTrang))];
-            
-            statuses.forEach(status => {
-                const opt = document.createElement('option');
-                opt.value = status;
-                opt.innerHTML = status;
-                select.appendChild(opt);
-            });
-        }
+        updateStatsUI(stats);
+    }
 
-        // 2. HIỂN THỊ DANH SÁCH DỰ ÁN
-        function renderProjects(data) {
-            const list = document.getElementById('projectList');
-            list.innerHTML = '';
-            
-            data.forEach(p => {
-                const statusClass = p.tinhTrang.toLowerCase().replace(/\s/g, '-');
-                list.innerHTML += `
-                    <div class="project-item">
-                        <h4>${p.ten}</h4>
-                        <p><b>CĐT:</b> ${p.cdt} | <b>Cách kho:</b> ${p.khoangCach}</p>
-                        <p><b>Quy mô:</b> ${p.soCan} căn | ${p.dienTich}</p>
-                        <span class="tag tag-${statusClass}">${p.tinhTrang}</span>
-                    </div>
-                `;
-            });
-            updateStats(data);
-        }
-
-        // 3. XỬ LÝ LỌC
-        function applyFilters() {
-            const status = document.getElementById('filterStatus').value;
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            const filtered = projects.filter(p => {
-                const matchStatus = (status === 'all' || p.tinhTrang === status);
-                const matchSearch = p.ten.toLowerCase().includes(searchTerm) || p.cdt.toLowerCase().includes(searchTerm);
-                return matchStatus && matchSearch;
-            });
-
-            renderProjects(filtered);
-        }
-
-        // 4. TÌM KIẾM NHANH
-        function handleSearch() {
-            applyFilters();
-        }
-
-        // 5. CẬP NHẬT THỐNG KÊ (Bên phải)
-        function updateStats(data) {
-            const statsContainer = document.getElementById('statsSummary');
-            const summary = data.reduce((acc, curr) => {
-                acc[curr.tinhTrang] = (acc[curr.tinhTrang] || 0) + 1;
-                return acc;
-            }, {});
-
-            statsContainer.innerHTML = '';
-            for (const [key, value] of Object.entries(summary)) {
-                statsContainer.innerHTML += `
-                    <div class="stat-card">
-                        ${key}
-                        <b>${value} dự án</b>
-                    </div>
-                `;
+    function updateStatsUI(stats) {
+        const area = document.getElementById('statsArea');
+        area.innerHTML = '';
+        for (const [key, val] of Object.entries(stats)) {
+            if(key !== "undefined") {
+                area.innerHTML += `<div class="stat-item"><b>${val}</b> dự án<br>${key}</div>`;
             }
         }
+    }
 
-        // CHẠY KHI TRANG LOAD XONG
-        initFilters();
-        renderProjects(projects);
+    // Chạy tải dữ liệu
+    loadSheetData();
 
-    </script>
+</script>
 </body>
 </html>
