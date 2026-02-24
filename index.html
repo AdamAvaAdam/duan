@@ -141,8 +141,18 @@
         return parseInt(val.toString().replace(/\D/g, '')) || 0;
     }
 
+    // HÀM CHỈNH SỬA: Ưu tiên lấy dữ liệu từ cột Phân Cấp (Cột K)
     function detectClass(p) {
-        let text = (p.phân_cấp || p.ghi_chu_kinh_doanh || p.tên_du_an || "").toLowerCase();
+        // Làm sạch key để tìm đúng cột Phân cấp bất kể viết hoa/thường/có dấu
+        let rawClass = p.phân_cấp || p.phancap || p.Phan_cap || "";
+        let classValue = rawClass.toString().trim();
+
+        if (classValue !== "") {
+            return classValue; // Nếu cột K có dữ liệu, lấy luôn giá trị đó
+        }
+
+        // Nếu cột K trống, mới dùng logic đoán từ khóa cũ
+        let text = (p.tên_du_an || "").toLowerCase();
         if (text.includes("cao") || text.includes("vip") || text.includes("sang")) return "Cao cấp";
         if (text.includes("bình") || text.includes("noxh") || text.includes("rẻ")) return "Bình dân";
         return "Trung cấp";
@@ -152,9 +162,12 @@
         Papa.parse(csvUrl, {
             download: true, header: true,
             complete: function(res) {
+                // Tự động chuẩn hóa tên cột để dễ truy cập
                 allData = res.data.filter(p => p.vĩ_độ && p.kinh_độ).map(p => {
+                    // Gọi hàm detectClass đã sửa đổi
                     p.pClass = detectClass(p);
-                    let q = getCleanNum(p.quy_mo_can);
+                    
+                    let q = getCleanNum(p.quy_mo_can || p.quymocan);
                     p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
                     return p;
                 });
@@ -168,8 +181,14 @@
         let s = { l:0, m:0, sn:0, high:0, mid:0, low:0, doing:0, done:0 };
         data.forEach(p => {
             if(p.pSize === "Lớn") s.l++; else if(p.pSize === "Vừa") s.m++; else s.sn++;
-            if(p.pClass === "Cao cấp") s.high++; else if(p.pClass === "Bình dân") s.low++; else s.mid++;
-            let tt = (p.tinh_trang || "").toLowerCase();
+            
+            // Thống kê dựa trên cột Phân cấp mới
+            let pc = p.pClass.toLowerCase();
+            if(pc.includes("cao")) s.high++; 
+            else if(pc.includes("bình") || pc.includes("thấp")) s.low++; 
+            else s.mid++;
+
+            let tt = (p.tinh_trang || p.tinhtrang || "").toLowerCase();
             if(tt.includes("đang") || tt.includes("xây")) s.doing++; else s.done++;
         });
         document.getElementById('size-l').innerText = s.l;
@@ -199,7 +218,7 @@
             } else if (currentFilter.type === 'class') {
                 matchQuick = p.pClass.toLowerCase().includes(currentFilter.value);
             } else if (currentFilter.type === 'status') {
-                matchQuick = (p.tinh_trang || "").toLowerCase().includes(currentFilter.value);
+                matchQuick = (p.tinh_trang || p.tinhtrang || "").toLowerCase().includes(currentFilter.value);
             }
             return matchSearch && matchQuick;
         });
@@ -212,15 +231,16 @@
         list.innerHTML = "";
         data.forEach(p => {
             const lat = parseFloat(p.vĩ_độ), lon = parseFloat(p.kinh_độ);
-            const isDoing = (p.tinh_trang || "").toLowerCase().includes("đang");
+            const isDoing = (p.tinh_trang || p.tinhtrang || "").toLowerCase().includes("đang");
             const color = isDoing ? "#e60012" : "#2ecc71";
             
-            // Màu sắc Tag
-            const classColor = p.pClass === "Cao cấp" ? "bg-gold" : (p.pClass === "Trung cấp" ? "bg-blue" : "bg-grey");
+            // Hiển thị Tag Phân Cấp trực quan
+            const pc = p.pClass.toLowerCase();
+            const classColor = pc.includes("cao") ? "bg-gold" : (pc.includes("bình") ? "bg-grey" : "bg-blue");
             const sizeColor = p.pSize === "Lớn" ? "bg-purple" : (p.pSize === "Vừa" ? "bg-orange" : "bg-teal");
 
             L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
-             .bindPopup(`<b>${p.tên_du_an}</b><br>Quy mô: ${p.pSize}<br>Phân cấp: ${p.pClass}`);
+             .bindPopup(`<b>${p.tên_du_an}</b><br>Quy mô: ${p.pSize}<br>Phân cấp: ${p.pClass}<br>CĐT: ${p.chủ_đầu_tư || 'N/A'}`);
 
             const card = document.createElement('div');
             card.className = 'project-card';
@@ -228,13 +248,13 @@
             card.innerHTML = `
                 <span class="card-title">${p.tên_du_an}</span>
                 <div style="font-size:11px; color:#555;">
-                    📍 ${p.địa_chỉ || 'N/A'} | <b>${p.khoang_cach} km</b><br>
-                    📦 Số căn: <b style="color:var(--pana-red)">${p.quy_mo_can}</b>
+                    📍 ${p.địa_chỉ || 'N/A'} | <b>${p.khoảng_cách || p.khoang_cach || '0'} km</b><br>
+                    📦 Số căn: <b style="color:var(--pana-red)">${p.quy_mo_can || p.quymocan || '0'}</b>
                 </div>
                 <div style="margin-top:2px;">
                     <span class="badge ${sizeColor}">Quy mô: ${p.pSize}</span>
                     <span class="badge ${classColor}">${p.pClass}</span>
-                    <span class="badge ${isDoing ? 'bg-red' : 'bg-green'}">${p.tinh_trang}</span>
+                    <span class="badge ${isDoing ? 'bg-red' : 'bg-green'}">${p.tinh_trang || p.tinhtrang}</span>
                 </div>
             `;
             card.onclick = () => map.flyTo([lat, lon], 14);
@@ -251,3 +271,4 @@
 </script>
 </body>
 </html>
+
