@@ -14,7 +14,6 @@
         .login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         #main-content { display: flex; width: 100%; height: 100%; filter: blur(15px); pointer-events: none; }
 
-        /* Sidebar Left */
         #sidebar-left { flex: 0 0 380px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .header { background: var(--pana-blue); color: white; padding: 15px; font-weight: bold; text-align: center; font-size: 16px; }
         .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 5px solid transparent; }
@@ -23,7 +22,6 @@
         
         #map { flex: 1; z-index: 1; }
 
-        /* Sidebar Right */
         #sidebar-right { flex: 0 0 320px; background: var(--bg-light); border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; }
         .stat-group { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; overflow: hidden; }
         .stat-header { background: #eee; padding: 8px 12px; font-size: 11px; font-weight: bold; color: #666; border-bottom: 1px solid #ddd; text-transform: uppercase; }
@@ -31,11 +29,9 @@
         .stat-table tr { cursor: pointer; transition: 0.2s; }
         .stat-table tr:hover { background: #eef6ff; }
         .active-filter { background: var(--pana-blue) !important; color: white !important; }
-        .active-filter .stat-count { color: white !important; }
         .stat-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
         .stat-count { text-align: right; font-weight: bold; color: var(--pana-blue); }
 
-        /* Tags */
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; margin-top: 5px; margin-right: 4px; font-weight: bold; }
         .bg-red { background: var(--pana-red); }
         .bg-green { background: #2ecc71; }
@@ -60,7 +56,7 @@
 <div id="main-content">
     <div id="sidebar-left">
         <div class="header">DANH SÁCH DỰ ÁN MIỀN BẮC</div>
-        <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm theo tên, địa chỉ, CĐT..." onkeyup="applyFilters()" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;"></div>
+        <div style="padding:10px;"><input type="text" id="searchInp" placeholder="Tìm tên, địa chỉ, CĐT..." onkeyup="applyFilters()" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;"></div>
         <div id="project-list" style="overflow-y:auto; flex: 1;"></div>
     </div>
     
@@ -72,26 +68,28 @@
         <div class="stat-group">
             <div class="stat-header">QUY MÔ DỰ ÁN</div>
             <table class="stat-table">
-                <tr onclick="setQuickFilter('size', 'lon', this)"><td>Dự án Lớn (≥ 2.000 căn)</td><td id="size-l" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('size', 'vua', this)"><td>Dự án Vừa (500-1.999)</td><td id="size-m" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('size', 'nho', this)"><td>Dự án Nhỏ (< 500)</td><td id="size-s" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'Lớn', this)"><td>Dự án Lớn (≥ 2.000 căn)</td><td id="size-l" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'Vừa', this)"><td>Dự án Vừa (500-1.999)</td><td id="size-m" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'Nhỏ', this)"><td>Dự án Nhỏ (< 500)</td><td id="size-s" class="stat-count">0</td></tr>
             </table>
         </div>
 
         <div class="stat-group">
             <div class="stat-header">PHÂN CẤP SẢN PHẨM</div>
             <table class="stat-table">
-                <tr onclick="setQuickFilter('class', 'cao', this)"><td>Cao cấp</td><td id="class-high" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('class', 'trung', this)"><td>Trung cấp</td><td id="class-mid" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('class', 'bình', this)"><td>Bình dân/NOXH</td><td id="class-low" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('class', 'Cao cấp', this)"><td>Cao cấp</td><td id="class-high" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('class', 'Trung cấp', this)"><td>Trung cấp</td><td id="class-mid" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('class', 'Bình dân', this)"><td>Bình dân/NOXH</td><td id="class-low" class="stat-count">0</td></tr>
             </table>
         </div>
 
         <div class="stat-group">
             <div class="stat-header">TÌNH TRẠNG THI CÔNG</div>
             <table class="stat-table">
-                <tr onclick="setQuickFilter('status', 'đang', this)"><td>Đang xây dựng</td><td id="status-doing" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('status', 'đã', this)"><td>Đã hoàn thiện</td><td id="status-done" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'Đang xây dựng', this)"><td>Đang xây dựng</td><td id="status-doing" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'Đang hoàn thiện', this)"><td>Đang hoàn thiện</td><td id="status-finish" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'Đã xong', this)"><td>Đã xong/Bàn giao</td><td id="status-done" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'Sắp triển khai', this)"><td>Sắp triển khai</td><td id="status-soon" class="stat-count">0</td></tr>
             </table>
         </div>
 
@@ -100,7 +98,7 @@
 </div>
 
 <script>
- const SECRET = "HA5566";
+    const SECRET = "HA5566";
     const HUB_POS = [21.048766, 105.922618];
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
@@ -117,11 +115,10 @@
     }
 
     function initApp() {
-        map = L.map('map').setView(HUB_POS, 11);
+        map = L.map('map').setView(HUB_POS, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         markersLayer = L.layerGroup().addTo(map);
 
-        // Marker cho kho Phúc Lợi
         L.marker(HUB_POS, {
             icon: L.divIcon({
                 className: 'custom-div-icon',
@@ -130,26 +127,17 @@
             })
         }).addTo(map);
 
-        // Vẽ các vòng bán kính
-        [10, 30, 50].forEach(km => {
-            L.circle(HUB_POS, { radius: km * 1000, color: '#005696', fillOpacity: 0.01, weight: 1, dashArray: '5, 5' }).addTo(map);
-        });
-
         loadData();
     }
 
     function loadData() {
         Papa.parse(csvUrl, {
-            download: true, header: true,
+            download: true, header: true, skipEmptyLines: true,
             complete: function(res) {
-                // Đọc trực tiếp theo tiêu đề cột bạn đã đặt ở Hàng 1
                 allData = res.data.filter(p => p.vido && p.kinhdo).map(p => {
-                    // Xử lý quy mô số
-                    let q = parseInt((p.quymo || "0").toString().replace(/\D/g, '')) || 0;
+                    // Xử lý Quy mô
+                    let q = parseInt((p.quymo || "0").replace(/\D/g, '')) || 0;
                     p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
-                    
-                    // Gán phân cấp trực tiếp từ cột phancap
-                    p.pClass = (p.phancap || "Trung cấp").trim();
                     return p;
                 });
                 updateStats(allData);
@@ -159,23 +147,17 @@
     }
 
     function updateStats(data) {
-        let s = { l:0, m:0, sn:0, high:0, mid:0, low:0, doing:0, done:0 };
+        let s = { l:0, m:0, sn:0, high:0, mid:0, low:0, doing:0, finish:0, done:0, soon:0 };
         data.forEach(p => {
-            // Thống kê Quy mô
             if(p.pSize === "Lớn") s.l++; else if(p.pSize === "Vừa") s.m++; else s.sn++;
+            if(p.phancap === "Cao cấp") s.high++; else if(p.phancap === "Bình dân") s.low++; else s.mid++;
             
-            // Thống kê Phân cấp (Khớp chính xác tên bạn nhập)
-            let pc = p.pClass;
-            if(pc === "Cao cấp") s.high++; 
-            else if(pc === "Bình dân" || pc === "NOXH") s.low++; 
-            else s.mid++;
-
-            // Thống kê Tình trạng
-            let tt = p.tinhtrang || "";
-            if(tt === "Đang xây dựng" || tt === "Đang XD") s.doing++; 
-            else if(tt === "Đã hoàn thiện" || tt === "Đã xong") s.done++;
+            let tt = p.tinhtrang;
+            if(tt === "Đang xây dựng") s.doing++;
+            else if(tt === "Đang hoàn thiện") s.finish++;
+            else if(tt === "Đã xong") s.done++;
+            else if(tt === "Sắp triển khai") s.soon++;
         });
-
         document.getElementById('size-l').innerText = s.l;
         document.getElementById('size-m').innerText = s.m;
         document.getElementById('size-s').innerText = s.sn;
@@ -183,7 +165,9 @@
         document.getElementById('class-mid').innerText = s.mid;
         document.getElementById('class-low').innerText = s.low;
         document.getElementById('status-doing').innerText = s.doing;
+        document.getElementById('status-finish').innerText = s.finish;
         document.getElementById('status-done').innerText = s.done;
+        document.getElementById('status-soon').innerText = s.soon;
     }
 
     function setQuickFilter(type, val, el) {
@@ -198,15 +182,9 @@
         const filtered = allData.filter(p => {
             const matchSearch = p.tenduan.toLowerCase().includes(search) || (p.diachi || "").toLowerCase().includes(search);
             let matchQuick = true;
-            if (currentFilter.type === 'size') {
-                matchQuick = p.pSize === (currentFilter.value === 'lon' ? "Lớn" : (currentFilter.value === 'vua' ? "Vừa" : "Nhỏ"));
-            } else if (currentFilter.type === 'class') {
-                let filterMap = { 'cao': 'Cao cấp', 'trung': 'Trung cấp', 'bình': 'Bình dân' };
-                matchQuick = p.pClass === filterMap[currentFilter.value];
-            } else if (currentFilter.type === 'status') {
-                let filterStat = (currentFilter.value === 'đang') ? ["Đang xây dựng", "Đang XD"] : ["Đã hoàn thiện", "Đã xong"];
-                matchQuick = filterStat.includes(p.tinhtrang);
-            }
+            if (currentFilter.type === 'size') matchQuick = p.pSize === currentFilter.value;
+            else if (currentFilter.type === 'class') matchQuick = p.phancap === currentFilter.value;
+            else if (currentFilter.type === 'status') matchQuick = p.tinhtrang === currentFilter.value;
             return matchSearch && matchQuick;
         });
         renderUI(filtered);
@@ -218,31 +196,28 @@
         list.innerHTML = "";
         data.forEach(p => {
             const lat = parseFloat(p.vido), lon = parseFloat(p.kinhdo);
-            const isDoing = p.tinhtrang === "Đang xây dựng" || p.tinhtrang === "Đang XD";
-            const color = isDoing ? "#e60012" : "#2ecc71";
-            
-            const pc = p.pClass;
-            const classColor = pc === "Cao cấp" ? "bg-gold" : (pc === "Bình dân" ? "bg-grey" : "bg-blue");
+            let color = "#95a5a6"; // Mặc định xám
+            if(p.tinhtrang === "Đang xây dựng") color = "#e60012";
+            else if(p.tinhtrang === "Đang hoàn thiện") color = "#2ecc71";
+            else if(p.tinhtrang === "Đã xong") color = "#3498db";
+            else if(p.tinhtrang === "Sắp triển khai") color = "#e67e22";
+
+            const classColor = p.phancap === "Cao cấp" ? "bg-gold" : (p.phancap === "Trung cấp" ? "bg-blue" : "bg-grey");
             const sizeColor = p.pSize === "Lớn" ? "bg-purple" : (p.pSize === "Vừa" ? "bg-orange" : "bg-teal");
 
-            if(!isNaN(lat) && !isNaN(lon)) {
-                L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
-                 .bindPopup(`<b>${p.tenduan}</b><br>Phân cấp: ${p.pClass}<br>Tình trạng: ${p.tinhtrang}`);
-            }
+            L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
+             .bindPopup(`<b>${p.tenduan}</b><br>Tình trạng: ${p.tinhtrang}`);
 
             const card = document.createElement('div');
             card.className = 'project-card';
             card.style.borderLeftColor = color;
             card.innerHTML = `
                 <span class="card-title">${p.tenduan}</span>
-                <div style="font-size:11px; color:#555;">
-                    📍 ${p.diachi || 'N/A'} | <b>${p.cach || '0'} km</b><br>
-                    📦 Quy mô: <b>${p.quymo || '0'}</b> căn
-                </div>
+                <div style="font-size:11px; color:#555;">📍 ${p.diachi || 'N/A'} | <b>${p.cach} km</b></div>
                 <div style="margin-top:2px;">
-                    <span class="badge ${sizeColor}">Quy mô: ${p.pSize}</span>
-                    <span class="badge ${classColor}">${p.pClass}</span>
-                    <span class="badge ${isDoing ? 'bg-red' : 'bg-green'}">${p.tinhtrang}</span>
+                    <span class="badge ${sizeColor}">${p.pSize}</span>
+                    <span class="badge ${classColor}">${p.phancap}</span>
+                    <span class="badge" style="background:${color}">${p.tinhtrang}</span>
                 </div>
             `;
             card.onclick = () => map.flyTo([lat, lon], 14);
@@ -259,6 +234,3 @@
 </script>
 </body>
 </html>
-
-
-
