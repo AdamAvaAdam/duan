@@ -2,183 +2,129 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Live Dashboard - Phúc Lợi</title>
+    <title>Panasonic Project Live - FIX</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
     <style>
-        :root { --blue: #005ab2; --red: #e74c3c; --green: #27ae60; --orange: #f39c12; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: #f4f4f4; }
-        
-        .sidebar-left { width: 380px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; z-index: 1000; }
-        .header-box { padding: 15px; background: var(--blue); color: white; }
-        .search-box { padding: 10px; border-bottom: 1px solid #eee; }
-        .search-box input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        
-        #projectList { flex: 1; overflow-y: auto; }
-        .project-card { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .project-card:hover { background: #f9f9f9; }
-        .project-card h4 { margin: 0 0 5px; color: var(--blue); font-size: 14px; text-transform: uppercase; }
-        .project-card p { margin: 2px 0; font-size: 12px; color: #555; }
-        
+        :root { --blue: #005ab2; }
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+        #sidebar { width: 350px; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; }
         #map { flex: 1; }
-
-        .sidebar-right { width: 280px; background: white; border-left: 1px solid #ddd; padding: 15px; z-index: 1000; }
-        .filter-group { margin-bottom: 20px; }
-        select { width: 100%; padding: 10px; border-radius: 5px; }
-        
-        .stat-item { background: #f0f2f5; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #ccc; font-size: 13px; }
-        .badge { padding: 3px 7px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold; }
-        
-        /* Màu cho từng trạng thái */
-        .st-dang-xd { background: var(--red); }
-        .st-dang-ht { background: var(--green); }
-        .st-da-xong { background: var(--blue); }
-        .st-sap-tk { background: var(--orange); }
-        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; }
+        .project-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; }
+        .project-item:hover { background: #f0f7ff; }
+        .project-item h4 { margin: 0; color: var(--blue); text-transform: uppercase; }
+        .status-tag { display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 10px; color: white; margin-top: 5px; }
+        #loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .filter-area { padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        select, input { width: 100%; padding: 8px; margin-bottom: 5px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">Đang tải dữ liệu từ Google Sheets...</div>
+<div id="loading"><b>ĐANG ĐỌC DỮ LIỆU TỪ TRANG TÍNH...</b></div>
 
-<div class="sidebar-left">
-    <div class="header-box">
-        <h2 style="margin:0; font-size:18px;">DANH SÁCH DỰ ÁN</h2>
+<div id="sidebar">
+    <div class="filter-area">
+        <h3 style="margin:0 0 10px 0; font-size:16px;">PANASONIC DASHBOARD</h3>
+        <input type="text" id="searchInput" placeholder="Tìm tên dự án..." onkeyup="processData()">
+        <select id="statusFilter" onchange="processData()">
+            <option value="all">Tất cả tình trạng</option>
+        </select>
     </div>
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Tìm tên dự án, CĐT..." onkeyup="runAllFilters()">
-    </div>
-    <div id="projectList"></div>
+    <div id="list" style="overflow-y:auto; flex:1;"></div>
 </div>
 
 <div id="map"></div>
 
-<div class="sidebar-right">
-    <div class="filter-group">
-        <h3 style="font-size:14px;">BỘ LỌC TÌNH TRẠNG</h3>
-        <select id="statusFilter" onchange="runAllFilters()">
-            <option value="all">Tất cả tình trạng</option>
-        </select>
-    </div>
-    <div class="filter-group">
-        <h3 style="font-size:14px;">THỐNG KÊ NHANH</h3>
-        <div id="statsArea"></div>
-    </div>
-</div>
-
 <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
+    const URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
-    let allData = [];
+    let rawData = [];
     const map = L.map('map').setView([21.0285, 105.8542], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    let markersLayer = L.layerGroup().addTo(map);
+    let markerGroup = L.layerGroup().addTo(map);
 
-    // 1. LẤY DỮ LIỆU TỪ GOOGLE SHEETS
-    function loadSheetData() {
-        Papa.parse(SHEET_URL, {
+    // Hàm chuẩn hóa tên cột (Xóa dấu, xóa cách, về chữ thường)
+    function cleanKey(key) {
+        return key.toLowerCase().trim()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Bỏ dấu tiếng Việt
+            .replace(/\s+/g, ''); // Bỏ khoảng trắng
+    }
+
+    async function loadData() {
+        Papa.parse(URL, {
             download: true,
             header: true,
             complete: function(results) {
-                allData = results.data.filter(row => row['Tên Dự Án']); // Lọc bỏ dòng trống
-                initStatusFilter();
-                runAllFilters();
+                // Chuẩn hóa dữ liệu ngay khi tải xong
+                rawData = results.data.map(row => {
+                    let newRow = {};
+                    for (let key in row) {
+                        newRow[cleanKey(key)] = row[key];
+                    }
+                    return newRow;
+                }).filter(r => r.tenduan); // Chỉ lấy dòng có tên dự án
+
+                populateFilter();
+                processData();
                 document.getElementById('loading').style.display = 'none';
-            },
-            error: function(err) {
-                alert("Lỗi kết nối trang tính: " + err);
             }
         });
     }
 
-    // 2. KHỞI TẠO BỘ LỌC ĐỘNG
-    function initStatusFilter() {
+    function populateFilter() {
         const filter = document.getElementById('statusFilter');
-        const statuses = [...new Set(allData.map(item => item['Tình Trạng']))];
-        statuses.forEach(st => {
-            if(st) {
-                let opt = document.createElement('option');
-                opt.value = st; opt.innerHTML = st;
-                filter.appendChild(opt);
-            }
+        const statuses = [...new Set(rawData.map(r => r.tinhtrang))].filter(s => s);
+        statuses.forEach(s => {
+            let opt = document.createElement('option');
+            opt.value = s; opt.innerText = s;
+            filter.appendChild(opt);
         });
     }
 
-    // 3. XỬ LÝ MÀU SẮC DỰA TRÊN TÊN TRẠNG THÁI
-    function getStatusStyle(status) {
-        if (!status) return {class: 'st-sap-tk', color: 'gray'};
-        const s = status.toLowerCase();
-        if (s.includes("xây dựng")) return {class: 'st-dang-xd', color: '#e74c3c'};
-        if (s.includes("hoàn thiện")) return {class: 'st-dang-ht', color: '#27ae60'};
-        if (s.includes("xong") || s.includes("bàn giao")) return {class: 'st-da-xong', color: '#005ab2'};
-        return {class: 'st-sap-tk', color: '#f39c12'};
-    }
-
-    // 4. LỌC VÀ HIỂN THỊ
-    function runAllFilters() {
-        const selectedStatus = document.getElementById('statusFilter').value;
-        const keyword = document.getElementById('searchInput').value.toLowerCase();
+    function processData() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const listContainer = document.getElementById('list');
         
-        const filtered = allData.filter(p => {
-            const matchStatus = (selectedStatus === 'all' || p['Tình Trạng'] === selectedStatus);
-            const matchSearch = p['Tên Dự Án'].toLowerCase().includes(keyword) || p['CĐT'].toLowerCase().includes(keyword);
-            return matchStatus && matchSearch;
-        });
+        listContainer.innerHTML = '';
+        markerGroup.clearLayers();
 
-        renderContent(filtered);
-    }
+        rawData.forEach(p => {
+            if (status !== 'all' && p.tinhtrang !== status) return;
+            if (!p.tenduan.toLowerCase().includes(search)) return;
 
-    function renderContent(data) {
-        const list = document.getElementById('projectList');
-        list.innerHTML = '';
-        markersLayer.clearLayers();
-        
-        let stats = {};
-
-        data.forEach(p => {
-            const lat = parseFloat(p['Vĩ Độ']);
-            const lng = parseFloat(p['Kinh Độ']);
-            const info = getStatusStyle(p['Tình Trạng']);
+            const lat = parseFloat(p.vido);
+            const lng = parseFloat(p.kinhdo);
             
-            // Thống kê
-            stats[p['Tình Trạng']] = (stats[p['Tình Trạng']] || 0) + 1;
+            // Màu sắc marker
+            let color = '#f39c12';
+            if (p.tinhtrang?.includes("xây dựng")) color = '#e74c3c';
+            if (p.tinhtrang?.includes("hoàn thiện")) color = '#27ae60';
+            if (p.tinhtrang?.includes("xong")) color = '#005ab2';
 
-            // Render List
-            list.innerHTML += `
-                <div class="project-card" onclick="map.setView([${lat}, ${lng}], 15)">
-                    <h4>${p['Tên Dự Án']}</h4>
-                    <p><b>CĐT:</b> ${p['CĐT']} | <b>Cách kho:</b> ${p['Cách']}</p>
-                    <p><b>Quy mô:</b> ${p['Số Căn']} căn | ${p['Diện Tích']}</p>
-                    <span class="badge ${info.class}">${p['Tình Trạng']}</span>
-                </div>
+            // Thêm vào danh sách bên trái
+            const item = document.createElement('div');
+            item.className = 'project-item';
+            item.innerHTML = `
+                <h4>${p.tenduan}</h4>
+                <div>CĐT: ${p.cdt || 'N/A'}</div>
+                <div class="status-tag" style="background:${color}">${p.tinhtrang}</div>
             `;
+            item.onclick = () => { if(!isNaN(lat)) map.setView([lat, lng], 15); };
+            listContainer.appendChild(item);
 
-            // Render Markers
+            // Thêm Marker lên bản đồ
             if (!isNaN(lat) && !isNaN(lng)) {
                 L.circleMarker([lat, lng], {
-                    radius: 8, fillColor: info.color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.8
-                }).addTo(markersLayer).bindPopup(`<b>${p['Tên Dự Án']}</b><br>CĐT: ${p['CĐT']}<br>HT: ${p['Hoàn Thiện']}`);
+                    radius: 8, fillColor: color, color: '#white', weight: 1, opacity: 1, fillOpacity: 0.8
+                }).addTo(markerGroup).bindPopup(`<b>${p.tenduan}</b><br>CĐT: ${p.cdt}<br>Cách: ${p.cach}`);
             }
         });
-
-        updateStatsUI(stats);
     }
 
-    function updateStatsUI(stats) {
-        const area = document.getElementById('statsArea');
-        area.innerHTML = '';
-        for (const [key, val] of Object.entries(stats)) {
-            if(key !== "undefined") {
-                area.innerHTML += `<div class="stat-item"><b>${val}</b> dự án<br>${key}</div>`;
-            }
-        }
-    }
-
-    // Chạy tải dữ liệu
-    loadSheetData();
-
+    loadData();
 </script>
 </body>
 </html>
