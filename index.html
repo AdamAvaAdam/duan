@@ -130,20 +130,30 @@
         loadData();
     }
 
-    function loadData() {
-        Papa.parse(csvUrl, {
-            download: true, header: true, skipEmptyLines: true,
+ function loadData() {
+        // Kỹ thuật Cache Busting: Thêm biến thời gian để buộc tải dữ liệu mới nhất
+        const versioningUrl = csvUrl + "&t=" + new Date().getTime();
+
+        Papa.parse(versioningUrl, {
+            download: true, 
+            header: true, 
+            skipEmptyLines: true,
             complete: function(res) {
+                console.log("Dữ liệu nhận được:", res.data.length); // Kiểm tra số lượng dòng ở F12
+                
                 allData = res.data.filter(p => p.vido && p.kinhdo).map(p => {
-                    let q = parseInt((p.quymo || "0").replace(/\D/g, '')) || 0;
+                    let q = parseInt((p.quymo || "0").toString().replace(/\D/g, '')) || 0;
                     p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
-                    // Chuẩn hóa text để so sánh chính xác hơn
                     p.tinhtrang = (p.tinhtrang || "").trim();
                     p.phancap = (p.phancap || "").trim();
                     return p;
                 });
+                
                 updateStats(allData);
                 applyFilters();
+            },
+            error: function(err) {
+                console.error("Lỗi tải dữ liệu:", err);
             }
         });
     }
@@ -262,4 +272,5 @@
 </script>
 </body>
 </html>
+
 
