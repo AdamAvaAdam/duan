@@ -2,26 +2,19 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Project Management V20</title>
+    <title>Panasonic Project Management - New Status</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --pana-blue: #005696; --pana-red: #e60012; --bg-light: #f8f9fa; }
         body { margin: 0; display: flex; height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; }
-        
         #login-overlay { position: fixed; inset: 0; background: var(--pana-blue); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-box { background: white; padding: 30px; border-radius: 12px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         #main-content { display: flex; width: 100%; height: 100%; filter: blur(15px); pointer-events: none; }
-
         #sidebar-left { flex: 0 0 380px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
-        .header { background: var(--pana-blue); color: white; padding: 15px; font-weight: bold; text-align: center; font-size: 16px; }
-        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 5px solid transparent; }
-        .project-card:hover { background: #f0f7ff; }
-        .card-title { color: var(--pana-blue); font-weight: bold; font-size: 14px; display: block; margin-bottom: 3px; }
-        
+        .header { background: var(--pana-blue); color: white; padding: 15px; font-weight: bold; text-align: center; font-size: 15px; }
         #map { flex: 1; z-index: 1; }
-
         #sidebar-right { flex: 0 0 320px; background: var(--bg-light); border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; }
         .stat-group { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; overflow: hidden; }
         .stat-header { background: #eee; padding: 8px 12px; font-size: 11px; font-weight: bold; color: #666; border-bottom: 1px solid #ddd; text-transform: uppercase; }
@@ -29,18 +22,10 @@
         .stat-table tr { cursor: pointer; transition: 0.2s; }
         .stat-table tr:hover { background: #eef6ff; }
         .active-filter { background: var(--pana-blue) !important; color: white !important; }
-        .stat-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .stat-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
         .stat-count { text-align: right; font-weight: bold; color: var(--pana-blue); }
-
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; margin-top: 5px; margin-right: 4px; font-weight: bold; }
-        .bg-red { background: var(--pana-red); }
-        .bg-green { background: #2ecc71; }
-        .bg-gold { background: #f1c40f; color: #000; }
-        .bg-blue { background: #3498db; }
-        .bg-grey { background: #95a5a6; }
-        .bg-purple { background: #9b59b6; }
-        .bg-orange { background: #e67e22; }
-        .bg-teal { background: #16a085; }
+        .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 5px solid transparent; }
     </style>
 </head>
 <body>
@@ -66,11 +51,12 @@
         <div class="header" style="border-radius:8px; margin-bottom:10px">BÁO CÁO NHANH</div>
         
         <div class="stat-group">
-            <div class="stat-header">QUY MÔ DỰ ÁN</div>
+            <div class="stat-header">TÌNH TRẠNG THI CÔNG</div>
             <table class="stat-table">
-                <tr onclick="setQuickFilter('size', 'Lớn', this)"><td>Dự án Lớn (≥ 2.000 căn)</td><td id="size-l" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('size', 'Vừa', this)"><td>Dự án Vừa (500-1.999)</td><td id="size-m" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('size', 'Nhỏ', this)"><td>Dự án Nhỏ (< 500)</td><td id="size-s" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'sap', this)"><td>Sắp triển khai</td><td id="st-sap" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'xay', this)"><td>Đang xây</td><td id="st-xay" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'ban giao', this)"><td>Đang bàn giao căn hộ</td><td id="st-bangiao" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('status', 'van hanh', this)"><td>Đang vận hành (xong)</td><td id="st-vanhanh" class="stat-count">0</td></tr>
             </table>
         </div>
 
@@ -83,22 +69,12 @@
             </table>
         </div>
 
-        <div class="stat-group">
-            <div class="stat-header">TÌNH TRẠNG THI CÔNG</div>
-            <table class="stat-table">
-                <tr onclick="setQuickFilter('status', 'Đang xây dựng', this)"><td>Đang xây dựng</td><td id="status-doing" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('status', 'Đang hoàn thiện', this)"><td>Đang hoàn thiện</td><td id="status-finish" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('status', 'Đã xong', this)"><td>Đã xong/Bàn giao</td><td id="status-done" class="stat-count">0</td></tr>
-                <tr onclick="setQuickFilter('status', 'Sắp triển khai', this)"><td>Sắp triển khai</td><td id="status-soon" class="stat-count">0</td></tr>
-            </table>
-        </div>
-
         <button onclick="resetFilters()" style="width:100%; padding:10px; cursor:pointer; background:var(--pana-blue); color:white; border:none; border-radius:5px; font-weight:bold;">HIỆN TẤT CẢ DỰ ÁN</button>
     </div>
 </div>
 
 <script>
-  const SECRET = "HA5566";
+    const SECRET = "HA5566";
     const HUB_POS = [21.048766, 105.922618];
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm4CIyq3bdl3fQVwExPHPWqmn5CRNneBIbIqXM4INkiWpNDEToP9-DOvrxmgzLWEK5WiGtfmrVZSh3/pub?gid=0&single=true&output=csv';
     
@@ -118,76 +94,56 @@
         map = L.map('map').setView(HUB_POS, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         markersLayer = L.layerGroup().addTo(map);
-
-        L.marker(HUB_POS, {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: "<div style='background-color:#005696; color:white; padding:5px 10px; border-radius:5px; border:2px solid white; font-weight:bold; white-space:nowrap;'>KHO PHÚC LỢI (HUB)</div>",
-                iconSize: [140, 30], iconAnchor: [70, 15]
-            })
-        }).addTo(map);
-
         loadData();
     }
 
- function loadData() {
-        // Kỹ thuật Cache Busting: Thêm biến thời gian để buộc tải dữ liệu mới nhất
-        const versioningUrl = csvUrl + "&t=" + new Date().getTime();
-
-        Papa.parse(versioningUrl, {
-            download: true, 
-            header: true, 
-            skipEmptyLines: true,
+    function loadData() {
+        // Cache Busting để cập nhật dự án mới ngay lập tức
+        const finalUrl = csvUrl + "&t=" + new Date().getTime();
+        
+        Papa.parse(finalUrl, {
+            download: true, header: true, skipEmptyLines: true,
             complete: function(res) {
-                console.log("Dữ liệu nhận được:", res.data.length); // Kiểm tra số lượng dòng ở F12
-                
                 allData = res.data.filter(p => p.vido && p.kinhdo).map(p => {
                     let q = parseInt((p.quymo || "0").toString().replace(/\D/g, '')) || 0;
                     p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
-                    p.tinhtrang = (p.tinhtrang || "").trim();
-                    p.phancap = (p.phancap || "").trim();
                     return p;
                 });
-                
                 updateStats(allData);
                 applyFilters();
-            },
-            error: function(err) {
-                console.error("Lỗi tải dữ liệu:", err);
             }
         });
     }
 
     function updateStats(data) {
-        let s = { l:0, m:0, sn:0, high:0, mid:0, low:0, doing:0, finish:0, done:0, soon:0 };
+        let s = { sap:0, xay:0, bg:0, vh:0, high:0, mid:0, low:0 };
         data.forEach(p => {
-            // Quy mô
-            if(p.pSize === "Lớn") s.l++; else if(p.pSize === "Vừa") s.m++; else s.sn++;
+            // Phân cấp
+            let pc = (p.phancap || "").toLowerCase();
+            if(pc.includes("cao")) s.high++; else if(pc.includes("bình")) s.low++; else s.mid++;
             
-            // Phân cấp (Dùng includes để tránh lỗi viết hoa/thường)
-            let pc = p.phancap.toLowerCase();
-            if(pc.includes("cao")) s.high++; 
-            else if(pc.includes("bình") || pc.includes("noxh")) s.low++; 
-            else s.mid++;
-            
-            // Tình trạng (SỬA LỖI TẠI ĐÂY)
-            let tt = p.tinhtrang.toLowerCase();
-            if(tt.includes("xây") || tt.includes("xd")) s.doing++;
-            else if(tt.includes("hoàn thiện") || tt.includes("ht")) s.finish++;
-            else if(tt.includes("xong") || tt.includes("bàn giao")) s.done++;
-            else if(tt.includes("sắp") || tt.includes("chuẩn bị")) s.soon++;
+            // Tình trạng (Logic mới)
+            let tt = (p.tinhtrang || "").toLowerCase();
+            if(tt.includes("sắp")) s.sap++;
+            else if(tt.includes("xây")) s.xay++;
+            else if(tt.includes("bàn giao")) s.bg++;
+            else if(tt.includes("vận hành") || tt.includes("xong")) s.vh++;
         });
         
-        document.getElementById('size-l').innerText = s.l;
-        document.getElementById('size-m').innerText = s.m;
-        document.getElementById('size-s').innerText = s.sn;
+        document.getElementById('st-sap').innerText = s.sap;
+        document.getElementById('st-xay').innerText = s.xay;
+        document.getElementById('st-bangiao').innerText = s.bg;
+        document.getElementById('st-vanhanh').innerText = s.vh;
         document.getElementById('class-high').innerText = s.high;
         document.getElementById('class-mid').innerText = s.mid;
         document.getElementById('class-low').innerText = s.low;
-        document.getElementById('status-doing').innerText = s.doing;
-        document.getElementById('status-finish').innerText = s.finish;
-        document.getElementById('status-done').innerText = s.done;
-        document.getElementById('status-soon').innerText = s.soon;
+    }
+
+    function setQuickFilter(type, val, el) {
+        document.querySelectorAll('.stat-table tr').forEach(tr => tr.classList.remove('active-filter'));
+        el.classList.add('active-filter');
+        currentFilter = { type: type, value: val };
+        applyFilters();
     }
 
     function applyFilters() {
@@ -195,31 +151,11 @@
         const filtered = allData.filter(p => {
             const matchSearch = p.tenduan.toLowerCase().includes(search) || (p.diachi || "").toLowerCase().includes(search);
             let matchQuick = true;
-            
-            if (currentFilter.type === 'size') matchQuick = p.pSize === currentFilter.value;
-            else if (currentFilter.type === 'class') matchQuick = p.phancap.toLowerCase().includes(currentFilter.value.toLowerCase());
+            if (currentFilter.type === 'class') matchQuick = p.phancap.toLowerCase().includes(currentFilter.value.toLowerCase());
             else if (currentFilter.type === 'status') matchQuick = p.tinhtrang.toLowerCase().includes(currentFilter.value.toLowerCase());
-            
             return matchSearch && matchQuick;
         });
         renderUI(filtered);
-    }
-
-    function setQuickFilter(type, val, el) {
-        document.querySelectorAll('.stat-table tr').forEach(tr => tr.classList.remove('active-filter'));
-        el.classList.add('active-filter');
-        // Chuẩn hóa giá trị lọc để khớp với hàm .includes()
-        let filterVal = val;
-        if(val === 'Đang xây dựng') filterVal = 'xây';
-        if(val === 'Đang hoàn thiện') filterVal = 'hoàn thiện';
-        if(val === 'Đã xong') filterVal = 'xong';
-        if(val === 'Sắp triển khai') filterVal = 'sắp';
-        if(val === 'Cao cấp') filterVal = 'cao';
-        if(val === 'Trung cấp') filterVal = 'trung';
-        if(val === 'Bình dân') filterVal = 'bình';
-
-        currentFilter = { type: type, value: filterVal };
-        applyFilters();
     }
 
     function renderUI(data) {
@@ -228,37 +164,30 @@
         list.innerHTML = "";
         data.forEach(p => {
             const lat = parseFloat(p.vido), lon = parseFloat(p.kinhdo);
-            let color = "#95a5a6"; 
-            let tt = p.tinhtrang.toLowerCase();
+            let color = "#95a5a6";
+            let tt = (p.tinhtrang || "").toLowerCase();
             
-            if(tt.includes("xây") || tt.includes("xd")) color = "#e60012";
-            else if(tt.includes("hoàn thiện") || tt.includes("ht")) color = "#2ecc71";
-            else if(tt.includes("xong") || tt.includes("bàn giao")) color = "#3498db";
-            else if(tt.includes("sắp") || tt.includes("chuẩn bị")) color = "#e67e22";
-
-            const pc = p.phancap.toLowerCase();
-            const classColor = pc.includes("cao") ? "bg-gold" : (pc.includes("trung") ? "bg-blue" : "bg-grey");
-            const sizeColor = p.pSize === "Lớn" ? "bg-purple" : (p.pSize === "Vừa" ? "bg-orange" : "bg-teal");
-
-            if(!isNaN(lat) && !isNaN(lon)) {
-                L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
-                 .bindPopup(`<b>${p.tenduan}</b><br>Tình trạng: ${p.tinhtrang}`);
-            }
+            if(tt.includes("sắp")) color = "#e67e22"; // Cam
+            else if(tt.includes("xây")) color = "#e60012"; // Đỏ
+            else if(tt.includes("bàn giao")) color = "#2ecc71"; // Xanh lá
+            else if(tt.includes("vận hành") || tt.includes("xong")) color = "#005696"; // Xanh Pana
 
             const card = document.createElement('div');
             card.className = 'project-card';
             card.style.borderLeftColor = color;
             card.innerHTML = `
                 <span class="card-title">${p.tenduan}</span>
-                <div style="font-size:11px; color:#555;">📍 ${p.diachi || 'N/A'} | <b>${p.cach || 0} km</b></div>
+                <div style="font-size:11px; color:#555;">📍 ${p.diachi || 'N/A'} | <b>${p.cach} km</b></div>
                 <div style="margin-top:2px;">
-                    <span class="badge ${sizeColor}">${p.pSize}</span>
-                    <span class="badge ${classColor}">${p.phancap}</span>
+                    <span class="badge ${p.phancap === 'Cao cấp' ? 'bg-gold' : 'bg-blue'}">${p.phancap}</span>
                     <span class="badge" style="background:${color}">${p.tinhtrang}</span>
                 </div>
             `;
             card.onclick = () => map.flyTo([lat, lon], 14);
             list.appendChild(card);
+
+            L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
+             .bindPopup(`<b>${p.tenduan}</b><br>Tình trạng: ${p.tinhtrang}`);
         });
     }
 
@@ -269,8 +198,5 @@
         applyFilters();
     }
 </script>
-</script>
 </body>
 </html>
-
-
