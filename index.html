@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Panasonic Project Management - New Status</title>
+    <title>Panasonic Project Management - Full Features</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -26,6 +26,15 @@
         .stat-count { text-align: right; font-weight: bold; color: var(--pana-blue); }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; margin-top: 5px; margin-right: 4px; font-weight: bold; }
         .project-card { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; border-left: 5px solid transparent; }
+        /* Màu sắc Tag */
+        .bg-red { background: var(--pana-red); }
+        .bg-green { background: #2ecc71; }
+        .bg-gold { background: #f1c40f; color: #000; }
+        .bg-blue { background: #3498db; }
+        .bg-grey { background: #95a5a6; }
+        .bg-purple { background: #9b59b6; }
+        .bg-orange { background: #e67e22; }
+        .bg-teal { background: #16a085; }
     </style>
 </head>
 <body>
@@ -50,6 +59,15 @@
     <div id="sidebar-right">
         <div class="header" style="border-radius:8px; margin-bottom:10px">BÁO CÁO NHANH</div>
         
+        <div class="stat-group">
+            <div class="stat-header">QUY MÔ DỰ ÁN</div>
+            <table class="stat-table">
+                <tr onclick="setQuickFilter('size', 'Lớn', this)"><td>Dự án Lớn (≥ 2.000 căn)</td><td id="size-l" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'Vừa', this)"><td>Dự án Vừa (500-1.999)</td><td id="size-m" class="stat-count">0</td></tr>
+                <tr onclick="setQuickFilter('size', 'Nhỏ', this)"><td>Dự án Nhỏ (< 500)</td><td id="size-s" class="stat-count">0</td></tr>
+            </table>
+        </div>
+
         <div class="stat-group">
             <div class="stat-header">TÌNH TRẠNG THI CÔNG</div>
             <table class="stat-table">
@@ -94,19 +112,34 @@
         map = L.map('map').setView(HUB_POS, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         markersLayer = L.layerGroup().addTo(map);
+
+        // HIỂN THỊ LẠI KHO PHÚC LỢI
+        L.marker(HUB_POS, {
+            icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#005696; color:white; padding:5px 10px; border-radius:5px; border:2px solid white; font-weight:bold; white-space:nowrap;'>KHO PHÚC LỢI (HUB)</div>",
+                iconSize: [140, 30], iconAnchor: [70, 15]
+            })
+        }).addTo(map);
+
+        [10, 30, 50].forEach(km => {
+            L.circle(HUB_POS, { radius: km * 1000, color: '#005696', fillOpacity: 0.01, weight: 1, dashArray: '5, 5' }).addTo(map);
+        });
+
         loadData();
     }
 
     function loadData() {
-        // Cache Busting để cập nhật dự án mới ngay lập tức
         const finalUrl = csvUrl + "&t=" + new Date().getTime();
-        
         Papa.parse(finalUrl, {
             download: true, header: true, skipEmptyLines: true,
             complete: function(res) {
                 allData = res.data.filter(p => p.vido && p.kinhdo).map(p => {
+                    // XỬ LÝ QUY MÔ
                     let q = parseInt((p.quymo || "0").toString().replace(/\D/g, '')) || 0;
                     p.pSize = (q >= 2000) ? "Lớn" : (q >= 500 ? "Vừa" : "Nhỏ");
+                    p.tinhtrang = (p.tinhtrang || "").trim();
+                    p.phancap = (p.phancap || "").trim();
                     return p;
                 });
                 updateStats(allData);
@@ -116,20 +149,24 @@
     }
 
     function updateStats(data) {
-        let s = { sap:0, xay:0, bg:0, vh:0, high:0, mid:0, low:0 };
+        let s = { l:0, m:0, sn:0, sap:0, xay:0, bg:0, vh:0, high:0, mid:0, low:0 };
         data.forEach(p => {
+            // Quy mô
+            if(p.pSize === "Lớn") s.l++; else if(p.pSize === "Vừa") s.m++; else s.sn++;
             // Phân cấp
-            let pc = (p.phancap || "").toLowerCase();
+            let pc = p.phancap.toLowerCase();
             if(pc.includes("cao")) s.high++; else if(pc.includes("bình")) s.low++; else s.mid++;
-            
-            // Tình trạng (Logic mới)
-            let tt = (p.tinhtrang || "").toLowerCase();
+            // Tình trạng
+            let tt = p.tinhtrang.toLowerCase();
             if(tt.includes("sắp")) s.sap++;
             else if(tt.includes("xây")) s.xay++;
             else if(tt.includes("bàn giao")) s.bg++;
             else if(tt.includes("vận hành") || tt.includes("xong")) s.vh++;
         });
         
+        document.getElementById('size-l').innerText = s.l;
+        document.getElementById('size-m').innerText = s.m;
+        document.getElementById('size-s').innerText = s.sn;
         document.getElementById('st-sap').innerText = s.sap;
         document.getElementById('st-xay').innerText = s.xay;
         document.getElementById('st-bangiao').innerText = s.bg;
@@ -151,8 +188,12 @@
         const filtered = allData.filter(p => {
             const matchSearch = p.tenduan.toLowerCase().includes(search) || (p.diachi || "").toLowerCase().includes(search);
             let matchQuick = true;
-            if (currentFilter.type === 'class') matchQuick = p.phancap.toLowerCase().includes(currentFilter.value.toLowerCase());
-            else if (currentFilter.type === 'status') matchQuick = p.tinhtrang.toLowerCase().includes(currentFilter.value.toLowerCase());
+            if (currentFilter.type === 'size') matchQuick = p.pSize === currentFilter.value;
+            else if (currentFilter.type === 'class') matchQuick = p.phancap.toLowerCase().includes(currentFilter.value.toLowerCase());
+            else if (currentFilter.type === 'status') {
+                let mapVal = { 'sap': 'sắp', 'xay': 'xây', 'ban giao': 'bàn giao', 'van hanh': 'vận hành' };
+                matchQuick = p.tinhtrang.toLowerCase().includes(mapVal[currentFilter.value] || currentFilter.value);
+            }
             return matchSearch && matchQuick;
         });
         renderUI(filtered);
@@ -165,21 +206,25 @@
         data.forEach(p => {
             const lat = parseFloat(p.vido), lon = parseFloat(p.kinhdo);
             let color = "#95a5a6";
-            let tt = (p.tinhtrang || "").toLowerCase();
-            
-            if(tt.includes("sắp")) color = "#e67e22"; // Cam
-            else if(tt.includes("xây")) color = "#e60012"; // Đỏ
-            else if(tt.includes("bàn giao")) color = "#2ecc71"; // Xanh lá
-            else if(tt.includes("vận hành") || tt.includes("xong")) color = "#005696"; // Xanh Pana
+            let tt = p.tinhtrang.toLowerCase();
+            if(tt.includes("sắp")) color = "#e67e22";
+            else if(tt.includes("xây")) color = "#e60012";
+            else if(tt.includes("bàn giao")) color = "#2ecc71";
+            else if(tt.includes("vận hành") || tt.includes("xong")) color = "#005696";
+
+            // HIỂN THỊ LẠI TAG TRÊN CARD
+            const classColor = p.phancap.toLowerCase().includes("cao") ? "bg-gold" : (p.phancap.toLowerCase().includes("bình") ? "bg-grey" : "bg-blue");
+            const sizeColor = p.pSize === "Lớn" ? "bg-purple" : (p.pSize === "Vừa" ? "bg-orange" : "bg-teal");
 
             const card = document.createElement('div');
             card.className = 'project-card';
             card.style.borderLeftColor = color;
             card.innerHTML = `
                 <span class="card-title">${p.tenduan}</span>
-                <div style="font-size:11px; color:#555;">📍 ${p.diachi || 'N/A'} | <b>${p.cach} km</b></div>
+                <div style="font-size:11px; color:#555;">📍 ${p.diachi || 'N/A'} | <b>${p.cach || 0} km</b></div>
                 <div style="margin-top:2px;">
-                    <span class="badge ${p.phancap === 'Cao cấp' ? 'bg-gold' : 'bg-blue'}">${p.phancap}</span>
+                    <span class="badge ${sizeColor}">Quy mô: ${p.pSize}</span>
+                    <span class="badge ${classColor}">${p.phancap}</span>
                     <span class="badge" style="background:${color}">${p.tinhtrang}</span>
                 </div>
             `;
@@ -187,7 +232,7 @@
             list.appendChild(card);
 
             L.circleMarker([lat, lon], { radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.8 }).addTo(markersLayer)
-             .bindPopup(`<b>${p.tenduan}</b><br>Tình trạng: ${p.tinhtrang}`);
+             .bindPopup(`<b>${p.tenduan}</b><br>Quy mô: ${p.quymo} căn<br>Tình trạng: ${p.tinhtrang}`);
         });
     }
 
